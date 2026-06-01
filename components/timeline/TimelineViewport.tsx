@@ -24,6 +24,7 @@ interface TimelineViewportProps {
   layout: TimelineLayout;
   timelineHeight: number;
   viewportWidth: number;
+  viewportHeight: number;
   categoryById: Map<string, Category>;
   backgroundHeight: number;
   eventsTop: number;
@@ -38,6 +39,7 @@ export const TimelineViewport = memo(function TimelineViewport({
   layout,
   timelineHeight,
   viewportWidth,
+  viewportHeight,
   categoryById,
   backgroundHeight,
   eventsTop,
@@ -90,7 +92,10 @@ export const TimelineViewport = memo(function TimelineViewport({
             background={background}
             x={x}
             width={width}
-            height={timelineHeight}
+            canvasHeight={timelineHeight}
+            viewportHeight={viewportHeight}
+            scrollLeft={scrollLeft}
+            viewportWidth={viewportWidth}
           />
         ))}
       </div>

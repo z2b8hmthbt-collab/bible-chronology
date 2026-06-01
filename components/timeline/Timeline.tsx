@@ -348,6 +348,7 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
           layout={layout}
           timelineHeight={timelineHeight}
           viewportWidth={viewportWidth}
+          viewportHeight={viewportHeight}
           categoryById={categoryById}
           backgroundHeight={BACKGROUND_HEIGHT}
           eventsTop={EVENTS_TOP}
