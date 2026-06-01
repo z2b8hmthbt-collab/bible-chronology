@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafafa;
+  --foreground: #171717;
+  --surface: #ffffff;
+  --border: #e5e5e5;
+  --muted: #737373;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="parchment"]) {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --surface: #171717;
+    --border: #262626;
+    --muted: #a3a3a3;
+    --accent: #818cf8;
+    --accent-hover: #6366f1;
+  }
+}
+
+html[data-theme="parchment"] {
+  color-scheme: light;
+  --background: #ebe1cf;
+  --foreground: #2a2218;
+  --surface: #f5efe3;
+  --border: #cfc0a8;
+  --muted: #6b5c48;
+  --accent: #7a5c1e;
+  --accent-hover: #5c4516;
+}
+
+html[data-theme="modern"] {
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif {
+  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.panel-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.panel-slide-side {
+  animation: slideSide 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideSide {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.timeline-scroll {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.timeline-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.timeline-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.image-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--background) 0%,
+    color-mix(in srgb, var(--border) 55%, var(--background)) 50%,
+    var(--background) 100%
+  );
+  background-size: 200% 100%;
+  animation: imageShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes imageShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
