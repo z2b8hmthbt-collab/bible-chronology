@@ -10,6 +10,10 @@ import type {
 import { createEmptyData, normalizeTimelineData } from "./types";
 import { loadLocalData, saveLocalData } from "./storage";
 import { mergeImportData, replaceTimelineData } from "./merge";
+import {
+  clearSavedTimelineView,
+  notifyTimelineDataCleared,
+} from "./timeline-view-storage";
 
 interface TimelineStore {
   data: TimelineData;
@@ -39,6 +43,7 @@ interface TimelineStore {
 
   importData: (data: TimelineData, mode: "replace" | "merge") => void;
   exportData: () => TimelineData;
+  clearAllData: () => void;
 
   persist: () => Promise<void>;
 }
@@ -237,6 +242,16 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
   },
 
   exportData: () => structuredClone(get().data),
+
+  clearAllData: () => {
+    set({
+      data: replaceTimelineData(createEmptyData()),
+      detailItem: null,
+    });
+    clearSavedTimelineView();
+    notifyTimelineDataCleared();
+    get().persist();
+  },
 
   persist: async () => {
     queuePersist(async () => {

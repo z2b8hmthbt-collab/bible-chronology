@@ -41,7 +41,7 @@ export function HelpModal({ onClose }: HelpModalProps) {
               "+ Event and + Background add items manually (on desktop; use Menu on mobile).",
               "Menu → Import CSV to bulk-import events.",
               "Menu → AI extraction prompt… gives you a prompt to paste into ChatGPT (or similar) along with a PDF/image; copy the resulting CSV back here.",
-              "Menu → Backup & restore to export or import your full timeline as JSON.",
+              "Menu → Backup & restore to export or import your full timeline as JSON, or clear everything and start fresh.",
             ]}
           />
         </HelpSection>

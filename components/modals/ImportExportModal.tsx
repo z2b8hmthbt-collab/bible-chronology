@@ -5,6 +5,7 @@ import { ModalOverlay } from "../ui/ModalOverlay";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { buttonPrimaryClass, buttonSecondaryClass } from "../ui/FormField";
 import { useTimelineStore } from "@/lib/store";
+import { downloadTimelineBackup } from "@/lib/download-backup";
 import type { TimelineData } from "@/lib/types";
 
 interface ImportExportModalProps {
@@ -12,26 +13,23 @@ interface ImportExportModalProps {
 }
 
 export function ImportExportModal({ onClose }: ImportExportModalProps) {
+  const data = useTimelineStore((s) => s.data);
   const exportData = useTimelineStore((s) => s.exportData);
   const importData = useTimelineStore((s) => s.importData);
+  const clearAllData = useTimelineStore((s) => s.clearAllData);
   const fileRef = useRef<HTMLInputElement>(null);
   const [importMode, setImportMode] = useState<"replace" | "merge" | null>(null);
   const [pendingData, setPendingData] = useState<TimelineData | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  const hasTimelineContent =
+    data.events.length > 0 || data.backgrounds.length > 0;
 
   const handleExport = () => {
-    const data = exportData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `timeline-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadTimelineBackup(exportData());
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +71,12 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
     setImportMode(null);
     setSelectedFileName(null);
     setShowReplaceConfirm(false);
+    onClose();
+  };
+
+  const handleClearAll = () => {
+    clearAllData();
+    setShowClearConfirm(false);
     onClose();
   };
 
@@ -159,6 +163,42 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
             )}
           </div>
         )}
+
+        <BackupSection
+          title="Start fresh"
+          description="Remove all events and backgrounds on this device. Default categories are restored. This cannot be undone."
+        >
+          {hasTimelineContent ? (
+            <p className="mb-3 text-xs text-[var(--muted)]">
+              Current timeline: {data.events.length} events ·{" "}
+              {data.backgrounds.length} backgrounds · {data.categories.length}{" "}
+              categories
+            </p>
+          ) : (
+            <p className="mb-3 text-xs text-[var(--muted)]">
+              Your timeline is already empty.
+            </p>
+          )}
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={!hasTimelineContent}
+              className={`${buttonSecondaryClass} flex-1 disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              Download backup first
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowClearConfirm(true)}
+              disabled={!hasTimelineContent}
+              className="flex-1 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-100 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
+            >
+              Clear all data
+            </button>
+          </div>
+        </BackupSection>
       </div>
 
       {showReplaceConfirm && (
@@ -168,6 +208,28 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
           confirmLabel="Replace all"
           onConfirm={doImport}
           onCancel={() => setShowReplaceConfirm(false)}
+        />
+      )}
+
+      {showClearConfirm && (
+        <ConfirmDialog
+          title="Clear all timeline data?"
+          message={
+            <>
+              <p>
+                This removes every event and background on this device and resets
+                categories to the defaults. Your saved zoom and scroll position
+                are reset too.
+              </p>
+              <p className="mt-2">
+                Download a backup first if you might need this data again. This
+                cannot be undone.
+              </p>
+            </>
+          }
+          confirmLabel="Clear everything"
+          onConfirm={handleClearAll}
+          onCancel={() => setShowClearConfirm(false)}
         />
       )}
     </ModalOverlay>

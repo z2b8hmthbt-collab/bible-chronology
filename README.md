@@ -11,7 +11,7 @@ A personal, offline-first timeline web app for biblical/historical events — no
 - Categories with colors; show/hide via **Filter** or the collapsible legend
 - Visible-event culling for large timelines
 - Offline-first storage (IndexedDB)
-- **Menu → Backup & restore** — JSON import/export (merge or replace)
+- **Menu → Backup & restore** — JSON import/export (merge or replace), or clear all data to start fresh
 - CSV import with column mapping; AI extraction prompt for PDF/image workflows
 - Image URLs you host on your own domain (events and backgrounds)
 - Client-side password gate (no user accounts)

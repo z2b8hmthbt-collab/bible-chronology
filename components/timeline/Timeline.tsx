@@ -29,6 +29,11 @@ import { usePinchZoom } from "./usePinchZoom";
 import { useDragPan } from "./useDragPan";
 import type { Category } from "@/lib/types";
 import type { useHiddenCategories } from "@/lib/use-hidden-categories";
+import {
+  loadSavedTimelineView,
+  saveTimelineView,
+  TIMELINE_DATA_CLEARED_EVENT,
+} from "@/lib/timeline-view-storage";
 
 type CategoryVisibility = ReturnType<typeof useHiddenCategories>;
 
@@ -37,43 +42,6 @@ interface TimelineProps {
 }
 
 const COMPACT_BREAKPOINT = 640;
-const VIEW_STORAGE_KEY = "timeline-view-v1";
-
-interface SavedView {
-  pixelsPerDay: number;
-  scrollLeft: number;
-}
-
-function loadSavedView(): SavedView | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(VIEW_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (
-      typeof parsed?.pixelsPerDay === "number" &&
-      parsed.pixelsPerDay > 0 &&
-      typeof parsed?.scrollLeft === "number"
-    ) {
-      return {
-        pixelsPerDay: parsed.pixelsPerDay,
-        scrollLeft: Math.max(0, parsed.scrollLeft),
-      };
-    }
-  } catch {
-    // ignore malformed/unavailable storage
-  }
-  return null;
-}
-
-function saveView(view: SavedView): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify(view));
-  } catch {
-    // ignore quota/unavailable storage
-  }
-}
 
 /** Vertical sizing tuned per device so phones stay tight and desktops breathe. */
 function getTimelineMetrics(viewportWidth: number) {
@@ -278,7 +246,7 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
   useEffect(() => {
     if (hasAutoFit.current || viewportWidth <= 0 || totalDays <= 0) return;
 
-    const saved = loadSavedView();
+    const saved = loadSavedTimelineView();
     if (saved) {
       hasAutoFit.current = true;
       setPixelsPerDay(clampZoom(saved.pixelsPerDay, zoomMin));
@@ -306,7 +274,7 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
       clearTimeout(t);
       t = setTimeout(
         () =>
-          saveView({
+          saveTimelineView({
             pixelsPerDay,
             scrollLeft: scrollStore.getSnapshot(),
           }),
@@ -320,6 +288,23 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
       clearTimeout(t);
     };
   }, [pixelsPerDay, scrollStore]);
+
+  useEffect(() => {
+    const onDataCleared = () => {
+      hasAutoFit.current = false;
+      setPixelsPerDay(DEFAULT_PIXELS_PER_DAY);
+      requestAnimationFrame(() => {
+        const el = scrollRef.current;
+        if (el) {
+          el.scrollLeft = 0;
+          scrollStore.setScrollLeft(0);
+        }
+      });
+    };
+    window.addEventListener(TIMELINE_DATA_CLEARED_EVENT, onDataCleared);
+    return () =>
+      window.removeEventListener(TIMELINE_DATA_CLEARED_EVENT, onDataCleared);
+  }, [scrollStore]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
