@@ -30,6 +30,7 @@ jobs:
       - run: npm run build
         env:
           # Custom domain at site root (timeline.vndtkm.com). For github.io/<repo>/ only, set GITHUB_PAGES: true.
+          # Required: repository secret APP_PASSWORD (Settings → Secrets → Actions).
           NEXT_PUBLIC_APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
 
       - uses: actions/upload-pages-artifact@v3

@@ -23,7 +23,7 @@ A personal, offline-first timeline web app for biblical/historical events — no
 ```bash
 npm install
 cp .env.example .env.local
-# Optional: set a site password in .env.local (see below)
+# Copy .env.local and set NEXT_PUBLIC_APP_PASSWORD for local dev (see below)
 npm run dev
 ```
 
@@ -35,10 +35,12 @@ Set these in `.env.local` for local development. For production, they must be pr
 
 | Variable | Description |
 |---|---|
-| `NEXT_PUBLIC_APP_PASSWORD_HASH` | Preferred. SHA-256 hash of the site password. Generate via **Menu → Site password…** in the app. |
-| `NEXT_PUBLIC_APP_PASSWORD` | Legacy fallback. Plaintext password used only when no hash is set. |
+| `NEXT_PUBLIC_APP_PASSWORD` | Site unlock password (local dev in `.env.local`). |
+| `NEXT_PUBLIC_APP_PASSWORD_HASH` | Optional SHA-256 hash instead of plaintext. |
 
-If neither is set, the app opens without a password gate.
+**Production:** set GitHub Actions secret `APP_PASSWORD` to the same password (see Deploy). The password is fixed at build time; change it only by updating the secret and redeploying.
+
+If neither is set at build time, the app opens without a password gate.
 
 ## Data & Backups
 

@@ -10,7 +10,6 @@ import { CategoryManagerModal } from "./forms/CategoryManagerModal";
 import { ImportExportModal } from "./modals/ImportExportModal";
 import { CsvImportModal } from "./modals/CsvImportModal";
 import { AiPromptModal } from "./modals/AiPromptModal";
-import { SitePasswordModal } from "./modals/SitePasswordModal";
 import { AppearanceModal } from "./modals/AppearanceModal";
 import { JumpToYearModal } from "./modals/JumpToYearModal";
 import { SearchEventsModal } from "./modals/SearchEventsModal";
@@ -30,7 +29,6 @@ export type ModalType =
   | "import-export"
   | "csv"
   | "ai-prompt"
-  | "site-password"
   | "search"
   | "jump-to-year"
   | "help"
@@ -125,8 +123,6 @@ export function AppShell() {
       )}
       {modal === "csv" && <CsvImportModal onClose={closeModal} />}
       {modal === "ai-prompt" && <AiPromptModal onClose={closeModal} />}
-      {modal === "site-password" && <SitePasswordModal onClose={closeModal} />}
-
       <Toaster />
     </div>
   );

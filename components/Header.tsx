@@ -130,9 +130,6 @@ export function Header({ onOpenModal, categoryVisibility }: HeaderProps) {
                 <MenuItem onClick={() => open("appearance")}>
                   Appearance…
                 </MenuItem>
-                <MenuItem onClick={() => open("site-password")}>
-                  Site password…
-                </MenuItem>
                 <div className="my-1 border-t border-[var(--border)]" />
                 <MenuItem onClick={() => open("csv")}>Import CSV</MenuItem>
                 <MenuItem onClick={() => open("ai-prompt")}>

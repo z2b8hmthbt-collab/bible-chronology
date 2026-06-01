@@ -64,7 +64,6 @@ export function HelpModal({ onClose }: HelpModalProps) {
           <HelpList
             items={[
               "Deleting an event or background shows an Undo toast for a few seconds.",
-              "Menu → Site password… to set a password for your published site.",
               "Menu → Appearance… to change theme and category visibility defaults.",
               "Tap or click any event to open its details; featured events show a ★ marker.",
             ]}
