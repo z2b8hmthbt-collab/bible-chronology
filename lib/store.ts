@@ -75,14 +75,19 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
 
   updateEvent: (id, updates) => {
     const now = new Date().toISOString();
-    set((s) => ({
-      data: {
-        ...s.data,
-        events: s.data.events.map((e) =>
-          e.id === id ? { ...e, ...updates, updatedAt: now } : e
-        ),
-      },
-    }));
+    set((s) => {
+      const events = s.data.events.map((e) =>
+        e.id === id ? { ...e, ...updates, updatedAt: now } : e
+      );
+      const updated = events.find((e) => e.id === id);
+      return {
+        data: { ...s.data, events },
+        detailItem:
+          s.detailItem?.type === "event" && s.detailItem.data.id === id && updated
+            ? { type: "event", data: updated }
+            : s.detailItem,
+      };
+    });
     get().persist();
   },
 

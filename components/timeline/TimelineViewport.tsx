@@ -62,10 +62,20 @@ export const TimelineViewport = memo(function TimelineViewport({
     [visibleEvents]
   );
 
+  const visibleEventsRevisionKey = useMemo(
+    () =>
+      visibleEvents
+        .map(
+          ({ event, x, width, lane }) =>
+            `${event.id}:${event.updatedAt}:${x}:${width}:${lane}`
+        )
+        .join("\0"),
+    [visibleEvents]
+  );
+
   const sortedVisibleEvents = useMemo(
     () => sortVisibleEventsForRender(visibleEvents),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [visibleEventIdsKey]
+    [visibleEventIdsKey, visibleEventsRevisionKey, visibleEvents]
   );
 
   return (
