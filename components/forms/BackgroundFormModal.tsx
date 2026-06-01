@@ -9,7 +9,7 @@ import {
   buttonPrimaryClass,
 } from "../ui/FormField";
 import { LinksInput } from "./LinksInput";
-import { ImageUpload } from "./ImageUpload";
+import { ImageUpload, isValidImageUrl } from "./ImageUpload";
 import { DateInput } from "./DateInput";
 import { useTimelineStore } from "@/lib/store";
 import { compareTimelineDates } from "@/lib/date-utils";
@@ -33,6 +33,7 @@ export function BackgroundFormModal({ onClose, editId }: BackgroundFormModalProp
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [links, setLinks] = useState<string[]>(existing?.links ?? []);
   const [imageUrl, setImageUrl] = useState(existing?.imageUrl ?? "");
+  const [imageUrlDraft, setImageUrlDraft] = useState(existing?.imageUrl ?? "");
   const [imageOpacity, setImageOpacity] = useState(
     existing?.imageOpacity ?? DEFAULT_BACKGROUND_IMAGE_OPACITY
   );
@@ -53,14 +54,17 @@ export function BackgroundFormModal({ onClose, editId }: BackgroundFormModalProp
     ev.preventDefault();
     if (!validate()) return;
 
+    const draft = imageUrlDraft.trim();
+    const trimmedImageUrl =
+      draft && isValidImageUrl(draft) ? draft : imageUrl.trim();
     const payload = {
       startDate,
       endDate,
       title: title.trim(),
       notes,
       links: links.filter(Boolean),
-      imageUrl: imageUrl || undefined,
-      imageOpacity: imageUrl ? imageOpacity : undefined,
+      imageUrl: trimmedImageUrl || undefined,
+      imageOpacity: trimmedImageUrl ? imageOpacity : undefined,
     };
 
     if (existing) {
@@ -109,7 +113,11 @@ export function BackgroundFormModal({ onClose, editId }: BackgroundFormModalProp
         <ImageUpload
           imageUrl={imageUrl}
           onUploaded={setImageUrl}
-          onClear={() => setImageUrl("")}
+          onClear={() => {
+            setImageUrl("");
+            setImageUrlDraft("");
+          }}
+          onInputChange={setImageUrlDraft}
         />
 
         {imageUrl && (

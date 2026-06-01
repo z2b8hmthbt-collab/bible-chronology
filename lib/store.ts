@@ -127,14 +127,21 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
 
   updateBackground: (id, updates) => {
     const now = new Date().toISOString();
-    set((s) => ({
-      data: {
-        ...s.data,
-        backgrounds: s.data.backgrounds.map((b) =>
-          b.id === id ? { ...b, ...updates, updatedAt: now } : b
-        ),
-      },
-    }));
+    set((s) => {
+      const backgrounds = s.data.backgrounds.map((b) =>
+        b.id === id ? { ...b, ...updates, updatedAt: now } : b
+      );
+      const updated = backgrounds.find((b) => b.id === id);
+      return {
+        data: { ...s.data, backgrounds },
+        detailItem:
+          s.detailItem?.type === "background" &&
+          s.detailItem.data.id === id &&
+          updated
+            ? { type: "background", data: updated }
+            : s.detailItem,
+      };
+    });
     get().persist();
   },
 

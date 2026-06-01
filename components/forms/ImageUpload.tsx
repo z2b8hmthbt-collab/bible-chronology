@@ -7,9 +7,11 @@ interface ImageUploadProps {
   imageUrl: string;
   onUploaded: (url: string) => void;
   onClear: () => void;
+  /** Lets parent forms save the URL on Submit even if Apply was not clicked. */
+  onInputChange?: (value: string) => void;
 }
 
-function isValidImageUrl(value: string): boolean {
+export function isValidImageUrl(value: string): boolean {
   try {
     const url = new URL(value);
     return url.protocol === "http:" || url.protocol === "https:";
@@ -18,7 +20,12 @@ function isValidImageUrl(value: string): boolean {
   }
 }
 
-export function ImageUpload({ imageUrl, onUploaded, onClear }: ImageUploadProps) {
+export function ImageUpload({
+  imageUrl,
+  onUploaded,
+  onClear,
+  onInputChange,
+}: ImageUploadProps) {
   const [inputValue, setInputValue] = useState(imageUrl);
   const [previewError, setPreviewError] = useState(false);
 
@@ -27,8 +34,8 @@ export function ImageUpload({ imageUrl, onUploaded, onClear }: ImageUploadProps)
     setPreviewError(false);
   }, [imageUrl]);
 
-  const handleApply = () => {
-    const trimmed = inputValue.trim();
+  const applyUrl = (value: string) => {
+    const trimmed = value.trim();
     if (!trimmed) {
       onClear();
       setPreviewError(false);
@@ -38,6 +45,8 @@ export function ImageUpload({ imageUrl, onUploaded, onClear }: ImageUploadProps)
     onUploaded(trimmed);
     setPreviewError(false);
   };
+
+  const handleApply = () => applyUrl(inputValue);
 
   const displayUrl = imageUrl.trim();
   const showPreview = displayUrl && !previewError && isValidImageUrl(displayUrl);
@@ -58,6 +67,7 @@ export function ImageUpload({ imageUrl, onUploaded, onClear }: ImageUploadProps)
             value={inputValue}
             onChange={(e) => {
               setInputValue(e.target.value);
+              onInputChange?.(e.target.value);
               setPreviewError(false);
             }}
             onBlur={handleApply}

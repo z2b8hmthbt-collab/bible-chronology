@@ -83,10 +83,10 @@ export const TimelineViewport = memo(function TimelineViewport({
       style={{ width: layout.totalWidth, height: timelineHeight }}
       className="relative"
     >
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-[5]">
         {layout.backgrounds.map(({ background, x, width }) => (
           <BackgroundImageColumn
-            key={`bg-img-${background.id}`}
+            key={`bg-img-${background.id}-${background.updatedAt}-${background.imageUrl ?? ""}`}
             background={background}
             x={x}
             width={width}
