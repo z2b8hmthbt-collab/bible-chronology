@@ -29,9 +29,7 @@ jobs:
 
       - run: npm run build
         env:
-          # Required while the site URL is https://<user>.github.io/bible-chronology/
-          # Remove GITHUB_PAGES when you switch to a custom domain at the root (e.g. timeline.example.com).
-          GITHUB_PAGES: true
+          # Custom domain at site root (timeline.vndtkm.com). For github.io/<repo>/ only, set GITHUB_PAGES: true.
           NEXT_PUBLIC_APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
 
       - uses: actions/upload-pages-artifact@v3
