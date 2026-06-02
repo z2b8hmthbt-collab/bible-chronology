@@ -2,10 +2,15 @@
 
 interface EmptyStateProps {
   onAddEvent: () => void;
+  onRestoreBackup: () => void;
   onImportCsv: () => void;
 }
 
-export function EmptyState({ onAddEvent, onImportCsv }: EmptyStateProps) {
+export function EmptyState({
+  onAddEvent,
+  onRestoreBackup,
+  onImportCsv,
+}: EmptyStateProps) {
   return (
     <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-6">
       <div className="pointer-events-auto w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-lg">
@@ -19,11 +24,11 @@ export function EmptyState({ onAddEvent, onImportCsv }: EmptyStateProps) {
           Your timeline is empty
         </h2>
         <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-[var(--muted)]">
-          Add your first event by hand, or import a batch from a CSV file to get
-          started.
+          Add your first event, restore a JSON backup, or import events from a
+          CSV file.
         </p>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <div className="mt-6 flex flex-col gap-3">
           <button
             type="button"
             onClick={onAddEvent}
@@ -31,13 +36,22 @@ export function EmptyState({ onAddEvent, onImportCsv }: EmptyStateProps) {
           >
             + Add event
           </button>
-          <button
-            type="button"
-            onClick={onImportCsv}
-            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-medium transition hover:bg-[var(--background)] active:scale-[0.98]"
-          >
-            Import CSV
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              onClick={onRestoreBackup}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-medium transition hover:bg-[var(--background)] active:scale-[0.98] sm:flex-1"
+            >
+              Restore backup
+            </button>
+            <button
+              type="button"
+              onClick={onImportCsv}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-medium transition hover:bg-[var(--background)] active:scale-[0.98] sm:flex-1"
+            >
+              Import CSV
+            </button>
+          </div>
         </div>
 
         <p className="mt-5 text-xs text-[var(--muted)]">

@@ -94,8 +94,6 @@ export const TimelineViewport = memo(function TimelineViewport({
             width={width}
             canvasHeight={timelineHeight}
             viewportHeight={viewportHeight}
-            scrollLeft={scrollLeft}
-            viewportWidth={viewportWidth}
           />
         ))}
       </div>

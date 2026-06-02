@@ -1,12 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { Background } from "@/lib/types";
 import { getBackgroundImageOpacity } from "@/lib/types";
-import {
-  BACKGROUND_TILE_WIDTH_PX,
-  getVisibleBackgroundTileRange,
-} from "@/lib/background-tiles";
+import { BACKGROUND_TILE_WIDTH_PX } from "@/lib/background-tiles";
 
 interface BackgroundImageColumnProps {
   background: Background;
@@ -16,8 +13,6 @@ interface BackgroundImageColumnProps {
   canvasHeight: number;
   /** Visible scrollport height — each tile uses this fixed height. */
   viewportHeight: number;
-  scrollLeft: number;
-  viewportWidth: number;
 }
 
 export function BackgroundImageColumn({
@@ -26,8 +21,6 @@ export function BackgroundImageColumn({
   width,
   canvasHeight,
   viewportHeight,
-  scrollLeft,
-  viewportWidth,
 }: BackgroundImageColumnProps) {
   const imageUrl = background.imageUrl?.trim();
   const [failed, setFailed] = useState(false);
@@ -35,27 +28,6 @@ export function BackgroundImageColumn({
   const columnWidth = Math.max(width, 24);
   const tileWidth = BACKGROUND_TILE_WIDTH_PX;
   const bandHeight = viewportHeight > 0 ? viewportHeight : 0;
-
-  const tileRange = useMemo(
-    () =>
-      getVisibleBackgroundTileRange(
-        x,
-        columnWidth,
-        tileWidth,
-        scrollLeft,
-        viewportWidth
-      ),
-    [x, columnWidth, tileWidth, scrollLeft, viewportWidth]
-  );
-
-  const tiles = useMemo(() => {
-    if (tileRange.endIndex < tileRange.startIndex) return [];
-    const list: number[] = [];
-    for (let i = tileRange.startIndex; i <= tileRange.endIndex; i++) {
-      list.push(i);
-    }
-    return list;
-  }, [tileRange.startIndex, tileRange.endIndex]);
 
   if (!imageUrl || bandHeight <= 0) return null;
 
@@ -68,34 +40,32 @@ export function BackgroundImageColumn({
       style={{ left: x, width: columnWidth, height: canvasHeight }}
       aria-hidden
     >
+      {/* Detect load failures without painting a stretched <img> */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={imageUrl}
+        alt=""
+        className="hidden"
+        onError={() => setFailed(true)}
+      />
+
       <div
         className="sticky top-0 w-full overflow-hidden"
         style={{ height: bandHeight }}
       >
-        <div className="relative" style={{ width: columnWidth, height: bandHeight }}>
-          {!failed &&
-            tiles.map((index) => (
-              <div
-                key={`${background.id}-tile-${index}`}
-                className="absolute top-0 overflow-hidden"
-                style={{
-                  left: index * tileWidth,
-                  width: tileWidth,
-                  height: bandHeight,
-                }}
-              >
-                <img
-                  src={imageUrl}
-                  alt=""
-                  width={tileWidth}
-                  height={bandHeight}
-                  className="block h-full w-full object-cover object-center"
-                  draggable={false}
-                  decoding="async"
-                  onError={() => setFailed(true)}
-                />
-              </div>
-            ))}
+        <div className="relative h-full w-full">
+          {!failed && (
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${imageUrl})`,
+                backgroundRepeat: "repeat-x",
+                // Full image at fixed width; height follows aspect ratio (not a center crop).
+                backgroundSize: `${tileWidth}px auto`,
+                backgroundPosition: "left center",
+              }}
+            />
+          )}
 
           {!failed && (
             <>

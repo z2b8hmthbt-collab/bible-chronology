@@ -7,6 +7,11 @@ import {
   getDateDayIndex,
   dateToX,
 } from "./date-utils";
+import {
+  getPointHitRect,
+  isPointEvent,
+  laneHasPointHitCollision,
+} from "./timeline-point-hit";
 
 export const MIN_PIXELS_PER_DAY_ABSOLUTE = 0.000001;
 export const MAX_PIXELS_PER_DAY = 64;
@@ -85,28 +90,58 @@ function eventsOverlap(a: TimelineEvent, b: TimelineEvent): boolean {
   return aStart <= bEnd && bStart <= aEnd;
 }
 
-function assignLanes(events: TimelineEvent[]): Map<string, number> {
-  const sorted = [...events].sort(
-    (a, b) => getEventStartDayIndex(a) - getEventStartDayIndex(b)
-  );
+function assignLanes(
+  events: TimelineEvent[],
+  metricsById: Map<string, { x: number; width: number }>
+): Map<string, number> {
+  const sorted = [...events].sort((a, b) => {
+    const dayDiff = getEventStartDayIndex(a) - getEventStartDayIndex(b);
+    if (dayDiff !== 0) return dayDiff;
+    return a.id.localeCompare(b.id);
+  });
 
-  const lanes: TimelineEvent[][] = [];
+  const lanes: {
+    event: TimelineEvent;
+    hitRect: { left: number; right: number } | null;
+  }[][] = [];
   const laneMap = new Map<string, number>();
 
   for (const event of sorted) {
+    const metrics = metricsById.get(event.id);
+    if (!metrics) continue;
+
+    const point = isPointEvent(event);
+    const hitRect = point
+      ? getPointHitRect(metrics.x, metrics.width)
+      : null;
+
     let assigned = -1;
     for (let i = 0; i < lanes.length; i++) {
-      const lastInLane = lanes[i][lanes[i].length - 1];
-      if (!eventsOverlap(lastInLane, event)) {
-        assigned = i;
-        break;
+      const occupants = lanes[i];
+      const lastInLane = occupants[occupants.length - 1].event;
+      if (eventsOverlap(lastInLane, event)) continue;
+
+      if (
+        point &&
+        hitRect &&
+        laneHasPointHitCollision(
+          occupants.map((o) => o.hitRect),
+          hitRect
+        )
+      ) {
+        continue;
       }
+
+      assigned = i;
+      break;
     }
+
     if (assigned === -1) {
       assigned = lanes.length;
       lanes.push([]);
     }
-    lanes[assigned].push(event);
+
+    lanes[assigned].push({ event, hitRect });
     laneMap.set(event.id, assigned);
   }
 
@@ -125,20 +160,25 @@ export function computeTimelineLayout(
   const totalDays = timelineEndDay - timelineStartDay;
   const totalWidth = totalDays * pixelsPerDay;
 
-  const laneMap = assignLanes(events);
-  const maxLane = events.length > 0 ? Math.max(...laneMap.values()) + 1 : 1;
-
-  const layoutEvents: LayoutEvent[] = events.map((event) => {
+  const metricsById = new Map<string, { x: number; width: number }>();
+  for (const event of events) {
     const startDay = getEventStartDayIndex(event);
     const endDay = getEventEndDayIndex(event);
     const x = dateToX(startDay, timelineStartDay, pixelsPerDay);
     const endX = dateToX(endDay, timelineStartDay, pixelsPerDay);
     const width = Math.max(endX - x + pixelsPerDay, pixelsPerDay * 0.8);
+    metricsById.set(event.id, { x, width });
+  }
 
+  const laneMap = assignLanes(events, metricsById);
+  const maxLane = events.length > 0 ? Math.max(...laneMap.values()) + 1 : 1;
+
+  const layoutEvents: LayoutEvent[] = events.map((event) => {
+    const metrics = metricsById.get(event.id)!;
     return {
       event,
-      x,
-      width,
+      x: metrics.x,
+      width: metrics.width,
       lane: laneMap.get(event.id) ?? 0,
     };
   });

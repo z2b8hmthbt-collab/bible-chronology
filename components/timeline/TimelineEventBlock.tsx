@@ -5,8 +5,9 @@ import type { TimelineEvent, Category } from "@/lib/types";
 import { formatTimelineDate } from "@/lib/date-utils";
 import { colorWithAlpha } from "@/lib/color-utils";
 import { useTimelineStore } from "@/lib/store";
+import { MIN_POINT_HIT_WIDTH } from "@/lib/timeline-point-hit";
 
-const MIN_TAP_WIDTH = 44;
+const MIN_TAP_WIDTH = MIN_POINT_HIT_WIDTH;
 const LABEL_INSIDE_MIN = 56;
 const LABEL_ZOOM_THRESHOLD = 0.15;
 const FEATURED_LABEL_ZOOM_THRESHOLD = 0.05;

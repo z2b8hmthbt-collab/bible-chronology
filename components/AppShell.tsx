@@ -77,6 +77,7 @@ export function AppShell() {
         {isEmpty && (
           <EmptyState
             onAddEvent={() => openModal("event")}
+            onRestoreBackup={() => openModal("import-export")}
             onImportCsv={() => openModal("csv")}
           />
         )}
