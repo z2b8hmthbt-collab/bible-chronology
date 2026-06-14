@@ -14,6 +14,13 @@ import {
   clampZoom,
 } from "@/lib/timeline-layout";
 import {
+  getFeaturedCircleDiameter,
+  getFeaturedLabelFontSize,
+  getFeaturedMarkerOverflow,
+  getMaxFeaturedFloatTier,
+  usesFeaturedCircle,
+} from "@/lib/featured-marker-size";
+import {
   getEventStartDayIndex,
   dateToX,
 } from "@/lib/date-utils";
@@ -93,8 +100,19 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
     labelHeight: EVENT_LABEL_HEIGHT,
     backgroundHeight: BACKGROUND_HEIGHT,
     laneHeight: LANE_HEIGHT,
-    eventsTop: EVENTS_TOP,
+    eventsTop: BASE_EVENTS_TOP,
   } = metrics;
+
+  const featuredTopPad = useMemo(() => {
+    const hasCircle = layout.events.some((e) => usesFeaturedCircle(e.event));
+    if (!hasCircle) return 0;
+    const maxTier = getMaxFeaturedFloatTier(layout.events);
+    const diameter = getFeaturedCircleDiameter(layout.pixelsPerDay);
+    const labelFont = getFeaturedLabelFontSize(diameter);
+    return getFeaturedMarkerOverflow(diameter, labelFont, maxTier);
+  }, [layout.events, layout.pixelsPerDay]);
+
+  const EVENTS_TOP = BASE_EVENTS_TOP + featuredTopPad;
 
   const categoryById = useMemo(() => {
     const map = new Map<string, Category>();
@@ -205,14 +223,18 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
   ]);
 
   const timelineHeight = useMemo(() => {
-    const header = BACKGROUND_HEIGHT;
+    const header = BACKGROUND_HEIGHT + featuredTopPad;
     const eventsBottom = layout.laneCount * LANE_HEIGHT;
     const contentHeight = header + Math.max(eventsBottom, LANE_HEIGHT) + 32;
 
-    // Always fill the available viewport so the grid/spine reach the bottom,
-    // then grow taller (and scroll) when there are more lanes than fit.
     return Math.max(contentHeight, viewportHeight);
-  }, [layout.laneCount, LANE_HEIGHT, BACKGROUND_HEIGHT, viewportHeight]);
+  }, [
+    layout.laneCount,
+    LANE_HEIGHT,
+    BACKGROUND_HEIGHT,
+    featuredTopPad,
+    viewportHeight,
+  ]);
 
   const syncScrollLeftFromElement = useCallback(() => {
     const el = scrollRef.current;

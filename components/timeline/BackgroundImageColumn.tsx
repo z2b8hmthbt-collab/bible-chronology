@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { Background } from "@/lib/types";
 import { getBackgroundImageOpacity } from "@/lib/types";
-import { BACKGROUND_TILE_WIDTH_PX } from "@/lib/background-tiles";
 
 interface BackgroundImageColumnProps {
   background: Background;
@@ -26,7 +25,6 @@ export function BackgroundImageColumn({
   const [failed, setFailed] = useState(false);
 
   const columnWidth = Math.max(width, 24);
-  const tileWidth = BACKGROUND_TILE_WIDTH_PX;
   const bandHeight = viewportHeight > 0 ? viewportHeight : 0;
 
   if (!imageUrl || bandHeight <= 0) return null;
@@ -60,9 +58,9 @@ export function BackgroundImageColumn({
               style={{
                 backgroundImage: `url(${imageUrl})`,
                 backgroundRepeat: "repeat-x",
-                // Full image at fixed width; height follows aspect ratio (not a center crop).
-                backgroundSize: `${tileWidth}px auto`,
-                backgroundPosition: "left center",
+                // Scale to full band height; width follows aspect ratio per tile.
+                backgroundSize: `auto ${bandHeight}px`,
+                backgroundPosition: "left top",
               }}
             />
           )}
@@ -73,8 +71,8 @@ export function BackgroundImageColumn({
                 className="pointer-events-none absolute inset-0 bg-[var(--background)]"
                 style={{ opacity: veilOpacity }}
               />
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-[var(--surface)]/25 to-transparent" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[var(--background)]/30 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-4 bg-gradient-to-b from-[var(--surface)]/20 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-[var(--background)]/20 to-transparent" />
             </>
           )}
 

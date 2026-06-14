@@ -11,12 +11,22 @@ import {
   getPointHitRect,
   isPointEvent,
   laneHasPointHitCollision,
+  pointHitRectsOverlap,
+  MIN_POINT_HIT_WIDTH,
 } from "./timeline-point-hit";
+import {
+  getFeaturedCircleDiameter,
+  usesFeaturedCircle,
+} from "./featured-marker-size";
 
 export const MIN_PIXELS_PER_DAY_ABSOLUTE = 0.000001;
 export const MAX_PIXELS_PER_DAY = 64;
 export const DEFAULT_PIXELS_PER_DAY = 0.5;
 export const ZOOM_FACTOR = 1.45;
+
+/** Scrollable margin beyond earliest/latest event or background (each side). */
+export const TIMELINE_EDGE_PADDING_YEARS = 100;
+export const TIMELINE_EDGE_PADDING_DAYS = TIMELINE_EDGE_PADDING_YEARS * 365;
 
 /** @deprecated use clampZoom with dynamic min from fitAllPixelsPerDay */
 export const MIN_PIXELS_PER_DAY = MIN_PIXELS_PER_DAY_ABSOLUTE;
@@ -64,6 +74,8 @@ export interface LayoutEvent {
   x: number;
   width: number;
   lane: number;
+  /** Vertical stack index for featured circle markers at the same x band. */
+  floatTier: number;
 }
 
 export interface LayoutBackground {
@@ -148,11 +160,66 @@ function assignLanes(
   return laneMap;
 }
 
+function getFeaturedCircleHitRect(
+  x: number,
+  width: number,
+  pixelsPerDay: number
+): { left: number; right: number } {
+  const diameter = getFeaturedCircleDiameter(pixelsPerDay);
+  const hitWidth = Math.max(diameter, MIN_POINT_HIT_WIDTH);
+  const centerX = x + Math.max(width, 3) / 2;
+  return { left: centerX - hitWidth / 2, right: centerX + hitWidth / 2 };
+}
+
+function assignFeaturedFloatTiers(
+  layoutEvents: LayoutEvent[],
+  pixelsPerDay: number
+): Map<string, number> {
+  const circleEvents = layoutEvents.filter((entry) =>
+    usesFeaturedCircle(entry.event)
+  );
+  const sorted = [...circleEvents].sort(
+    (a, b) => a.x - b.x || a.event.id.localeCompare(b.event.id)
+  );
+
+  const tiers: { hitRect: { left: number; right: number } }[][] = [];
+  const tierMap = new Map<string, number>();
+
+  for (const entry of sorted) {
+    const hitRect = getFeaturedCircleHitRect(
+      entry.x,
+      entry.width,
+      pixelsPerDay
+    );
+
+    let assigned = -1;
+    for (let i = 0; i < tiers.length; i++) {
+      const collision = tiers[i].some((occ) =>
+        pointHitRectsOverlap(occ.hitRect, hitRect)
+      );
+      if (!collision) {
+        assigned = i;
+        break;
+      }
+    }
+
+    if (assigned === -1) {
+      assigned = tiers.length;
+      tiers.push([]);
+    }
+
+    tiers[assigned].push({ hitRect });
+    tierMap.set(entry.event.id, assigned);
+  }
+
+  return tierMap;
+}
+
 export function computeTimelineLayout(
   events: TimelineEvent[],
   backgrounds: Background[],
   pixelsPerDay: number,
-  paddingDays = 30
+  paddingDays = TIMELINE_EDGE_PADDING_DAYS
 ): TimelineLayout {
   const bounds = getTimelineBounds(events, backgrounds);
   const timelineStartDay = bounds.startDay - paddingDays;
@@ -180,8 +247,14 @@ export function computeTimelineLayout(
       x: metrics.x,
       width: metrics.width,
       lane: laneMap.get(event.id) ?? 0,
+      floatTier: 0,
     };
   });
+
+  const floatTierMap = assignFeaturedFloatTiers(layoutEvents, pixelsPerDay);
+  for (const entry of layoutEvents) {
+    entry.floatTier = floatTierMap.get(entry.event.id) ?? 0;
+  }
 
   const layoutBackgrounds: LayoutBackground[] = backgrounds.map((bg) => {
     const startDay = getDateDayIndex(bg.startDate) ?? timelineStartDay;

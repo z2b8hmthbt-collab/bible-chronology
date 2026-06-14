@@ -6,11 +6,12 @@ import { formatTimelineDate } from "@/lib/date-utils";
 import { colorWithAlpha } from "@/lib/color-utils";
 import { useTimelineStore } from "@/lib/store";
 import { MIN_POINT_HIT_WIDTH } from "@/lib/timeline-point-hit";
+import { usesFeaturedCircle } from "@/lib/featured-marker-size";
+import { FeaturedPointMarker } from "./FeaturedPointMarker";
 
 const MIN_TAP_WIDTH = MIN_POINT_HIT_WIDTH;
 const LABEL_INSIDE_MIN = 56;
 const LABEL_ZOOM_THRESHOLD = 0.15;
-const FEATURED_LABEL_ZOOM_THRESHOLD = 0.05;
 
 /** True when this event reads scrollLeft for sticky in-span labels. */
 export function eventUsesStickyScrollLeft(
@@ -34,6 +35,7 @@ interface TimelineEventBlockProps {
   labelHeight?: number;
   pixelsPerDay: number;
   scrollLeft?: number;
+  floatTier?: number;
 }
 
 export const TimelineEventBlock = memo(function TimelineEventBlock({
@@ -46,25 +48,37 @@ export const TimelineEventBlock = memo(function TimelineEventBlock({
   labelHeight = 18,
   pixelsPerDay,
   scrollLeft = 0,
+  floatTier = 0,
 }: TimelineEventBlockProps) {
   const setDetailItem = useTimelineStore((s) => s.setDetailItem);
 
   const handleClick = useCallback(() => {
     setDetailItem({ type: "event", data: event });
   }, [event, setDetailItem]);
+
+  if (usesFeaturedCircle(event)) {
+    return (
+      <FeaturedPointMarker
+        event={event}
+        category={category}
+        x={x}
+        width={width}
+        top={top}
+        eventHeight={eventHeight}
+        floatTier={floatTier}
+        pixelsPerDay={pixelsPerDay}
+        onClick={handleClick}
+      />
+    );
+  }
+
   const color = category?.color ?? "#6366f1";
   const isPoint = !event.endDate || event.endDate === event.startDate;
-  const featured = Boolean(event.featured);
-  const labelThreshold = featured
-    ? FEATURED_LABEL_ZOOM_THRESHOLD
-    : LABEL_ZOOM_THRESHOLD;
-  const showLabelsAbove = pixelsPerDay >= labelThreshold;
-  const showLabelInside =
-    !isPoint && width >= (featured ? LABEL_INSIDE_MIN - 12 : LABEL_INSIDE_MIN);
+  const showLabelsAbove = pixelsPerDay >= LABEL_ZOOM_THRESHOLD;
+  const showLabelInside = !isPoint && width >= LABEL_INSIDE_MIN;
   const showLabelAbove =
-    showLabelsAbove && (isPoint || width < LABEL_INSIDE_MIN || featured);
+    showLabelsAbove && (isPoint || width < LABEL_INSIDE_MIN);
 
-  const pinSize = featured ? 12 : 10;
   const hitWidth = Math.max(width, isPoint ? MIN_TAP_WIDTH : 24);
   const hitLeft = isPoint ? x - (hitWidth - Math.max(width, 3)) / 2 : x;
   const markerWidth = isPoint ? Math.max(width, 3) : width;
@@ -74,10 +88,7 @@ export const TimelineEventBlock = memo(function TimelineEventBlock({
   const stickBottom = Math.round(eventHeight * 0.5);
   const stickHeight = Math.round(eventHeight * 0.28);
 
-  // Keep the span's title pinned to the visible left edge while scrolling,
-  // so long bars stay identifiable instead of losing their label off-screen.
   const stickyLabelLeft = Math.max(0, scrollLeft - x) + 6;
-
   const dateLabel = formatTimelineDate(event.startDate);
 
   return (
@@ -93,16 +104,13 @@ export const TimelineEventBlock = memo(function TimelineEventBlock({
         height: showLabelAbove ? blockWithLabelHeight : eventHeight,
         paddingTop: showLabelAbove ? labelHeight : 0,
       }}
-      aria-label={`${event.title}, ${dateLabel}${featured ? ", featured" : ""}`}
+      aria-label={`${event.title}, ${dateLabel}`}
     >
       {showLabelAbove && (
         <span
-          className={`font-serif pointer-events-none absolute left-1/2 top-0 max-w-[140px] -translate-x-1/2 truncate rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium leading-tight text-[var(--foreground)] shadow-sm ring-1 ring-[var(--border)] transition group-hover:scale-105 group-hover:ring-indigo-400 group-hover:shadow-md group-focus-visible:scale-105 group-focus-visible:ring-indigo-400 ${
-            featured ? "ring-amber-400/50" : ""
-          }`}
+          className="font-serif pointer-events-none absolute left-1/2 top-0 max-w-[140px] -translate-x-1/2 truncate rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium leading-tight text-[var(--foreground)] shadow-sm ring-1 ring-[var(--border)] transition group-hover:scale-105 group-hover:ring-indigo-400 group-hover:shadow-md group-focus-visible:scale-105 group-focus-visible:ring-indigo-400"
           style={{ borderBottom: `2px solid ${color}` }}
         >
-          {featured && <span className="mr-0.5 text-amber-500">★</span>}
           {event.title}
         </span>
       )}
@@ -110,14 +118,10 @@ export const TimelineEventBlock = memo(function TimelineEventBlock({
       {isPoint ? (
         <>
           <span
-            className={`absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full shadow-sm transition group-hover:scale-125 group-hover:shadow-md group-hover:brightness-110 group-focus-visible:scale-125 active:scale-[0.98] ${
-              featured
-                ? "border-2 border-white ring-2 ring-amber-400/80"
-                : "border-2 border-white"
-            }`}
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full border-2 border-white shadow-sm transition group-hover:scale-125 group-hover:shadow-md group-hover:brightness-110 group-focus-visible:scale-125 active:scale-[0.98]"
             style={{
-              width: pinSize,
-              height: pinSize,
+              width: 10,
+              height: 10,
               backgroundColor: color,
               bottom: pinBottom,
             }}
@@ -129,9 +133,7 @@ export const TimelineEventBlock = memo(function TimelineEventBlock({
         </>
       ) : (
         <span
-          className={`absolute bottom-0 left-0 block overflow-hidden rounded-md border border-black/5 text-left text-xs font-medium shadow-sm transition group-hover:shadow-md group-hover:ring-2 group-hover:ring-indigo-400/60 group-hover:brightness-105 group-focus-visible:ring-2 group-focus-visible:ring-indigo-400/60 active:scale-[0.98] ${
-            featured ? "ring-1 ring-amber-400/60" : ""
-          }`}
+          className="absolute bottom-0 left-0 block overflow-hidden rounded-md border border-black/5 text-left text-xs font-medium shadow-sm transition group-hover:shadow-md group-hover:ring-2 group-hover:ring-indigo-400/60 group-hover:brightness-105 group-focus-visible:ring-2 group-focus-visible:ring-indigo-400/60 active:scale-[0.98]"
           style={{
             width: markerWidth,
             height: eventHeight,
@@ -157,7 +159,6 @@ export const TimelineEventBlock = memo(function TimelineEventBlock({
 
       {!showLabelInside && !showLabelAbove && (
         <span className="font-serif pointer-events-none absolute bottom-full left-1/2 z-30 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-900 px-2 py-1 text-[10px] text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 sm:block">
-          {featured && <span className="text-amber-400">★ </span>}
           {event.title}
           <span className="mx-1 text-neutral-400">·</span>
           <span className="tabular-nums">{dateLabel}</span>

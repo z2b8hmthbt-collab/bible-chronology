@@ -6,7 +6,7 @@ A personal, offline-first timeline web app for biblical/historical events — no
 
 - Horizontal scrollable timeline with pinch-to-zoom, drag-to-pan, and persisted zoom/scroll
 - Timeline ruler, overview minimap, and cursor date readout
-- Single-date events and date ranges (including BC dates); optional **featured** events
+- Single-date events and date ranges (including BC dates); optional **featured** events with circular timeline markers when an image URL is set
 - **Backgrounds** — date-range spans with full-height optional images, opacity control, and info chip
 - Categories with colors; show/hide via **Filter** or the collapsible legend
 - Visible-event culling for large timelines

@@ -68,8 +68,8 @@ export const TimelineViewport = memo(function TimelineViewport({
     () =>
       visibleEvents
         .map(
-          ({ event, x, width, lane }) =>
-            `${event.id}:${event.updatedAt}:${x}:${width}:${lane}`
+          ({ event, x, width, lane, floatTier }) =>
+            `${event.id}:${event.updatedAt}:${x}:${width}:${lane}:${floatTier}`
         )
         .join("\0"),
     [visibleEvents]
@@ -130,7 +130,7 @@ export const TimelineViewport = memo(function TimelineViewport({
         className="absolute left-0 right-0 z-10 overflow-visible"
         style={{ top: eventsTop }}
       >
-        {sortedVisibleEvents.map(({ event, x, width, lane }) => {
+        {sortedVisibleEvents.map(({ event, x, width, lane, floatTier }) => {
           const category = categoryById.get(event.categoryId);
           const top = lane * laneHeight;
           const stickyScrollLeft = eventUsesStickyScrollLeft(event, width)
@@ -149,6 +149,7 @@ export const TimelineViewport = memo(function TimelineViewport({
               labelHeight={labelHeight}
               pixelsPerDay={layout.pixelsPerDay}
               scrollLeft={stickyScrollLeft}
+              floatTier={floatTier}
             />
           );
         })}

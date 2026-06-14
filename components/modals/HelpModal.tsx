@@ -65,7 +65,7 @@ export function HelpModal({ onClose }: HelpModalProps) {
             items={[
               "Deleting an event or background shows an Undo toast for a few seconds.",
               "Menu → Appearance… to change theme and category visibility defaults.",
-              "Tap or click any event to open its details; featured events show a ★ marker.",
+              "Tap or click any event to open its details. Featured single-day events with an image URL show a circular picture on the timeline.",
             ]}
           />
         </HelpSection>

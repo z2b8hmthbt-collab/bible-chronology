@@ -14,6 +14,7 @@ import { ImageUpload } from "./ImageUpload";
 import { DateInput } from "./DateInput";
 import { useTimelineStore } from "@/lib/store";
 import { compareTimelineDates } from "@/lib/date-utils";
+import { isPointEvent } from "@/lib/timeline-point-hit";
 
 interface EventFormModalProps {
   onClose: () => void;
@@ -40,6 +41,16 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
   const [featured, setFeatured] = useState(existing?.featured ?? false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  const draftEvent = {
+    startDate,
+    endDate: endDate || undefined,
+  };
+  const singleDay = isPointEvent(draftEvent);
+  const showCircleHint =
+    featured && Boolean(imageUrl.trim()) && singleDay;
+  const showCircleBlockedHint =
+    featured && Boolean(imageUrl.trim()) && !singleDay;
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -120,7 +131,9 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
           <span className="text-sm">
             <span className="font-medium">Featured event</span>
             <span className="mt-0.5 block text-xs text-[var(--muted)]">
-              Stays prominent when zoomed out — larger pin, label visible sooner.
+              With an image URL on a single-day event, shows a circular picture
+              on the timeline (scales with zoom). Square images with the subject
+              centered work best.
             </span>
           </span>
         </label>
@@ -141,6 +154,20 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
           onUploaded={setImageUrl}
           onClear={() => setImageUrl("")}
         />
+
+        {showCircleHint && (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200">
+            Circular timeline picture will show for this single-day event.
+          </p>
+        )}
+
+        {showCircleBlockedHint && (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+            Circular pictures only appear on <strong>single-day</strong> events.
+            Clear the end date (or set it equal to the start date) to use a
+            circle instead of a bar.
+          </p>
+        )}
 
         <button type="submit" disabled={submitting} className={buttonPrimaryClass}>
           {existing ? "Save Changes" : "Add Event"}
