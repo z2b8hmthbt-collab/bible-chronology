@@ -4,17 +4,20 @@ import { useState } from "react";
 import { ModalOverlay } from "../ui/ModalOverlay";
 import {
   FormField,
-  inputClass,
-  textareaClass,
-  selectClass,
+  FormInput,
+  FormTextarea,
+  FormSelect,
   buttonPrimaryClass,
 } from "../ui/FormField";
 import { LinksInput } from "./LinksInput";
-import { ImageUpload } from "./ImageUpload";
+import { ImageUpload, isValidImageUrl } from "./ImageUpload";
 import { DateInput } from "./DateInput";
 import { useTimelineStore } from "@/lib/store";
-import { compareTimelineDates } from "@/lib/date-utils";
 import { isPointEvent } from "@/lib/timeline-point-hit";
+import {
+  hasValidationErrors,
+  validateEventDraft,
+} from "@/lib/validate-timeline-item";
 
 interface EventFormModalProps {
   onClose: () => void;
@@ -38,6 +41,7 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
   );
   const [links, setLinks] = useState<string[]>(existing?.links ?? []);
   const [imageUrl, setImageUrl] = useState(existing?.imageUrl ?? "");
+  const [imageUrlDraft, setImageUrlDraft] = useState(existing?.imageUrl ?? "");
   const [featured, setFeatured] = useState(existing?.featured ?? false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -53,28 +57,32 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
     featured && Boolean(imageUrl.trim()) && !singleDay;
 
   const validate = () => {
-    const e: Record<string, string> = {};
-    if (!title.trim()) e.title = "Title is required";
-    if (!startDate) e.startDate = "Start date is required";
-    if (endDate && startDate && compareTimelineDates(endDate, startDate) < 0)
-      e.endDate = "End date must be on or after start";
+    const e = validateEventDraft({ title, startDate, endDate: endDate || undefined });
     setErrors(e);
-    return Object.keys(e).length === 0;
+    return !hasValidationErrors(e);
   };
 
   const handleSubmit = (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
 
+    const draft = imageUrlDraft.trim();
+    const trimmedImageUrl =
+      draft && isValidImageUrl(draft) ? draft : imageUrl.trim();
+
     setSubmitting(true);
+    const resolvedCategoryId = categories.some((c) => c.id === categoryId)
+      ? categoryId
+      : categories[0]?.id ?? "cat-default";
+
     const payload = {
       title: title.trim(),
       startDate,
       endDate: endDate || undefined,
       notes,
-      categoryId,
+      categoryId: resolvedCategoryId,
       links: links.filter(Boolean),
-      imageUrl: imageUrl || undefined,
+      imageUrl: trimmedImageUrl || undefined,
       featured: featured || undefined,
     };
 
@@ -90,8 +98,7 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
     <ModalOverlay onClose={onClose} title={existing ? "Edit Event" : "Add Event"}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <FormField label="Title" required error={errors.title}>
-          <input
-            className={inputClass}
+          <FormInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Event title"
@@ -108,8 +115,7 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
         </div>
 
         <FormField label="Category">
-          <select
-            className={selectClass}
+          <FormSelect
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
           >
@@ -118,7 +124,7 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
                 {c.name}
               </option>
             ))}
-          </select>
+          </FormSelect>
         </FormField>
 
         <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3">
@@ -139,8 +145,7 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
         </label>
 
         <FormField label="Notes">
-          <textarea
-            className={textareaClass}
+          <FormTextarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional notes…"
@@ -152,7 +157,11 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
         <ImageUpload
           imageUrl={imageUrl}
           onUploaded={setImageUrl}
-          onClear={() => setImageUrl("")}
+          onClear={() => {
+            setImageUrl("");
+            setImageUrlDraft("");
+          }}
+          onInputChange={setImageUrlDraft}
         />
 
         {showCircleHint && (

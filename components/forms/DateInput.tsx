@@ -163,6 +163,7 @@ export function DateInput({ value, onChange }: DateInputProps) {
               setEra(e);
               emit(month, day, yearAbs, e);
             }}
+            aria-pressed={era === e}
             className={`flex-1 rounded-lg py-1.5 text-sm font-medium transition ${
               era === e
                 ? "bg-indigo-500 text-white shadow-sm"

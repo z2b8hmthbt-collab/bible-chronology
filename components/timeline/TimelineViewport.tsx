@@ -9,6 +9,8 @@ import {
   sortVisibleEventsForRender,
   type TimelineLayout,
 } from "@/lib/timeline-layout";
+import { isPointEvent, LABEL_ZOOM_THRESHOLD, POINT_LABEL_ROW_HEIGHT } from "@/lib/timeline-point-hit";
+import { usesFeaturedCircle } from "@/lib/featured-marker-size";
 import { TimelineGrid } from "./TimelineGrid";
 import { BackgroundSpan } from "./BackgroundSpan";
 import { BackgroundImageColumn } from "./BackgroundImageColumn";
@@ -86,7 +88,7 @@ export const TimelineViewport = memo(function TimelineViewport({
       className="relative"
     >
       <div className="absolute inset-0 z-[5]">
-        {layout.backgrounds.map(({ background, x, width }) => (
+        {visibleBackgrounds.map(({ background, x, width }) => (
           <BackgroundImageColumn
             key={`bg-img-${background.id}-${background.updatedAt}-${background.imageUrl ?? ""}`}
             background={background}
@@ -130,9 +132,16 @@ export const TimelineViewport = memo(function TimelineViewport({
         className="absolute left-0 right-0 z-10 overflow-visible"
         style={{ top: eventsTop }}
       >
-        {sortedVisibleEvents.map(({ event, x, width, lane, floatTier }) => {
+        {sortedVisibleEvents.map(({ event, x, width, lane, floatTier, labelRow }) => {
           const category = categoryById.get(event.categoryId);
-          const top = lane * laneHeight;
+          const useLabelRowLayout =
+            isPointEvent(event) &&
+            layout.pixelsPerDay >= LABEL_ZOOM_THRESHOLD &&
+            !usesFeaturedCircle(event);
+          const pointSlotHeight = POINT_LABEL_ROW_HEIGHT + eventHeight + 10;
+          const top = useLabelRowLayout
+            ? layout.rangeLaneCount * laneHeight + labelRow * pointSlotHeight
+            : lane * laneHeight;
           const stickyScrollLeft = eventUsesStickyScrollLeft(event, width)
             ? scrollLeft
             : 0;
@@ -150,6 +159,7 @@ export const TimelineViewport = memo(function TimelineViewport({
               pixelsPerDay={layout.pixelsPerDay}
               scrollLeft={stickyScrollLeft}
               floatTier={floatTier}
+              labelRow={labelRow}
             />
           );
         })}

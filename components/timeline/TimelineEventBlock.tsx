@@ -5,13 +5,12 @@ import type { TimelineEvent, Category } from "@/lib/types";
 import { formatTimelineDate } from "@/lib/date-utils";
 import { colorWithAlpha } from "@/lib/color-utils";
 import { useTimelineStore } from "@/lib/store";
-import { MIN_POINT_HIT_WIDTH } from "@/lib/timeline-point-hit";
+import { MIN_POINT_HIT_WIDTH, LABEL_ZOOM_THRESHOLD, POINT_LABEL_ROW_HEIGHT } from "@/lib/timeline-point-hit";
 import { usesFeaturedCircle } from "@/lib/featured-marker-size";
 import { FeaturedPointMarker } from "./FeaturedPointMarker";
 
 const MIN_TAP_WIDTH = MIN_POINT_HIT_WIDTH;
 const LABEL_INSIDE_MIN = 56;
-const LABEL_ZOOM_THRESHOLD = 0.15;
 
 /** True when this event reads scrollLeft for sticky in-span labels. */
 export function eventUsesStickyScrollLeft(
@@ -36,6 +35,7 @@ interface TimelineEventBlockProps {
   pixelsPerDay: number;
   scrollLeft?: number;
   floatTier?: number;
+  labelRow?: number;
 }
 
 export const TimelineEventBlock = memo(function TimelineEventBlock({
@@ -49,6 +49,7 @@ export const TimelineEventBlock = memo(function TimelineEventBlock({
   pixelsPerDay,
   scrollLeft = 0,
   floatTier = 0,
+  labelRow = 0,
 }: TimelineEventBlockProps) {
   const setDetailItem = useTimelineStore((s) => s.setDetailItem);
 
@@ -83,13 +84,14 @@ export const TimelineEventBlock = memo(function TimelineEventBlock({
   const hitLeft = isPoint ? x - (hitWidth - Math.max(width, 3)) / 2 : x;
   const markerWidth = isPoint ? Math.max(width, 3) : width;
 
-  const blockWithLabelHeight = eventHeight + labelHeight;
   const pinBottom = Math.round(eventHeight * 0.36);
   const stickBottom = Math.round(eventHeight * 0.5);
   const stickHeight = Math.round(eventHeight * 0.28);
 
   const stickyLabelLeft = Math.max(0, scrollLeft - x) + 6;
   const dateLabel = formatTimelineDate(event.startDate);
+
+  const labelOnLeft = labelRow % 2 === 0;
 
   return (
     <button
@@ -100,15 +102,22 @@ export const TimelineEventBlock = memo(function TimelineEventBlock({
       style={{
         left: hitLeft,
         width: hitWidth,
-        top: top - (showLabelAbove ? labelHeight : 0),
-        height: showLabelAbove ? blockWithLabelHeight : eventHeight,
-        paddingTop: showLabelAbove ? labelHeight : 0,
+        top: top - (showLabelAbove ? POINT_LABEL_ROW_HEIGHT : 0),
+        height: showLabelAbove
+          ? eventHeight + POINT_LABEL_ROW_HEIGHT
+          : eventHeight,
+        paddingTop: showLabelAbove ? POINT_LABEL_ROW_HEIGHT : 0,
       }}
       aria-label={`${event.title}, ${dateLabel}`}
     >
       {showLabelAbove && (
         <span
-          className="font-serif pointer-events-none absolute left-1/2 top-0 max-w-[140px] -translate-x-1/2 truncate rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium leading-tight text-[var(--foreground)] shadow-sm ring-1 ring-[var(--border)] transition group-hover:scale-105 group-hover:ring-indigo-400 group-hover:shadow-md group-focus-visible:scale-105 group-focus-visible:ring-indigo-400"
+          title={event.title}
+          className={`font-serif pointer-events-none absolute top-0 max-w-[160px] truncate rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium leading-tight text-[var(--foreground)] shadow-sm ring-1 ring-[var(--border)] transition group-hover:z-40 group-hover:max-w-[240px] group-hover:whitespace-normal group-hover:ring-indigo-400 group-hover:shadow-md group-focus-visible:ring-indigo-400 ${
+            labelOnLeft
+              ? "right-1/2 mr-1.5 group-hover:scale-105"
+              : "left-1/2 ml-1.5 group-hover:scale-105"
+          }`}
           style={{ borderBottom: `2px solid ${color}` }}
         >
           {event.title}

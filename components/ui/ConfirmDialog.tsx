@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 interface ConfirmDialogProps {
@@ -26,8 +27,6 @@ export function ConfirmDialog({
   useFocusTrap(dialogRef, true);
 
   useEffect(() => {
-    // Capture phase + stopImmediatePropagation so an Escape here doesn't also
-    // close an underlying modal/panel that listens on window.
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopImmediatePropagation();
@@ -38,12 +37,12 @@ export function ConfirmDialog({
     return () => window.removeEventListener("keydown", handleKey, true);
   }, [onCancel]);
 
-  return (
+  const content = (
     <div
       className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center"
       role="alertdialog"
       aria-modal="true"
-      aria-label={title}
+      aria-labelledby="confirm-dialog-title"
     >
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -54,7 +53,10 @@ export function ConfirmDialog({
         className="relative z-10 w-full max-w-sm overflow-hidden rounded-t-2xl bg-[var(--surface)] shadow-xl panel-slide-up sm:rounded-2xl sm:panel-slide-side"
       >
         <div className="px-5 py-4">
-          <h2 className="text-base font-semibold text-[var(--foreground)]">
+          <h2
+            id="confirm-dialog-title"
+            className="text-base font-semibold text-[var(--foreground)]"
+          >
             {title}
           </h2>
           <div className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
@@ -84,4 +86,7 @@ export function ConfirmDialog({
       </div>
     </div>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(content, document.body);
 }

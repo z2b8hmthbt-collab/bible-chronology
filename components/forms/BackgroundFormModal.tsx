@@ -4,16 +4,19 @@ import { useState } from "react";
 import { ModalOverlay } from "../ui/ModalOverlay";
 import {
   FormField,
-  inputClass,
-  textareaClass,
+  FormInput,
+  FormTextarea,
   buttonPrimaryClass,
 } from "../ui/FormField";
 import { LinksInput } from "./LinksInput";
 import { ImageUpload, isValidImageUrl } from "./ImageUpload";
 import { DateInput } from "./DateInput";
 import { useTimelineStore } from "@/lib/store";
-import { compareTimelineDates } from "@/lib/date-utils";
-import { DEFAULT_BACKGROUND_IMAGE_OPACITY } from "@/lib/types";
+import { DEFAULT_BACKGROUND_IMAGE_OPACITY, getBackgroundImageOpacity } from "@/lib/types";
+import {
+  hasValidationErrors,
+  validateBackgroundDraft,
+} from "@/lib/validate-timeline-item";
 
 interface BackgroundFormModalProps {
   onClose: () => void;
@@ -35,19 +38,14 @@ export function BackgroundFormModal({ onClose, editId }: BackgroundFormModalProp
   const [imageUrl, setImageUrl] = useState(existing?.imageUrl ?? "");
   const [imageUrlDraft, setImageUrlDraft] = useState(existing?.imageUrl ?? "");
   const [imageOpacity, setImageOpacity] = useState(
-    existing?.imageOpacity ?? DEFAULT_BACKGROUND_IMAGE_OPACITY
+    existing ? getBackgroundImageOpacity(existing) : DEFAULT_BACKGROUND_IMAGE_OPACITY
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
-    const e: Record<string, string> = {};
-    if (!startDate) e.startDate = "Start date is required";
-    if (!endDate) e.endDate = "End date is required";
-    if (startDate && endDate && compareTimelineDates(endDate, startDate) < 0)
-      e.endDate = "End date must be on or after start";
-    if (!title.trim()) e.title = "Title is required";
+    const e = validateBackgroundDraft({ title, startDate, endDate });
     setErrors(e);
-    return Object.keys(e).length === 0;
+    return !hasValidationErrors(e);
   };
 
   const handleSubmit = (ev: React.FormEvent) => {
@@ -75,6 +73,10 @@ export function BackgroundFormModal({ onClose, editId }: BackgroundFormModalProp
     onClose();
   };
 
+  const opacityPercent = Math.round(
+    Math.min(85, Math.max(5, imageOpacity * 100))
+  );
+
   return (
     <ModalOverlay
       onClose={onClose}
@@ -91,8 +93,7 @@ export function BackgroundFormModal({ onClose, editId }: BackgroundFormModalProp
         </div>
 
         <FormField label="Title" required error={errors.title}>
-          <input
-            className={inputClass}
+          <FormInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Background title"
@@ -100,8 +101,7 @@ export function BackgroundFormModal({ onClose, editId }: BackgroundFormModalProp
         </FormField>
 
         <FormField label="Notes">
-          <textarea
-            className={textareaClass}
+          <FormTextarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional notes…"
@@ -121,15 +121,13 @@ export function BackgroundFormModal({ onClose, editId }: BackgroundFormModalProp
         />
 
         {imageUrl && (
-          <FormField
-            label={`Background image opacity (${Math.round(imageOpacity * 100)}%)`}
-          >
+          <FormField label={`Background image opacity (${opacityPercent}%)`}>
             <input
               type="range"
               min={5}
               max={85}
               step={5}
-              value={Math.round(imageOpacity * 100)}
+              value={opacityPercent}
               onChange={(e) =>
                 setImageOpacity(parseInt(e.target.value, 10) / 100)
               }

@@ -1,7 +1,9 @@
 import type { TimelineData } from "./types";
+import { createBackupFile } from "./parse-timeline-data";
 
 export function downloadTimelineBackup(data: TimelineData): void {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
+  const backup = createBackupFile(data);
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {
     type: "application/json",
   });
   const url = URL.createObjectURL(blob);

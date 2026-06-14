@@ -8,10 +8,13 @@ import {
   dateToX,
 } from "./date-utils";
 import {
-  getPointHitRect,
+  getPointLaneHitRect,
+  getPointLabelHitRect,
   isPointEvent,
   laneHasPointHitCollision,
   pointHitRectsOverlap,
+  LABEL_ZOOM_THRESHOLD,
+  POINT_LABEL_ROW_HEIGHT,
   MIN_POINT_HIT_WIDTH,
 } from "./timeline-point-hit";
 import {
@@ -76,6 +79,8 @@ export interface LayoutEvent {
   lane: number;
   /** Vertical stack index for featured circle markers at the same x band. */
   floatTier: number;
+  /** Dedicated row for point-event labels (avoids overlap in crowded columns). */
+  labelRow: number;
 }
 
 export interface LayoutBackground {
@@ -92,6 +97,8 @@ export interface TimelineLayout {
   events: LayoutEvent[];
   backgrounds: LayoutBackground[];
   laneCount: number;
+  /** Lanes used only by span/range events (point labels stack below). */
+  rangeLaneCount: number;
 }
 
 function eventsOverlap(a: TimelineEvent, b: TimelineEvent): boolean {
@@ -104,7 +111,8 @@ function eventsOverlap(a: TimelineEvent, b: TimelineEvent): boolean {
 
 function assignLanes(
   events: TimelineEvent[],
-  metricsById: Map<string, { x: number; width: number }>
+  metricsById: Map<string, { x: number; width: number }>,
+  pixelsPerDay: number
 ): Map<string, number> {
   const sorted = [...events].sort((a, b) => {
     const dayDiff = getEventStartDayIndex(a) - getEventStartDayIndex(b);
@@ -114,7 +122,7 @@ function assignLanes(
 
   const lanes: {
     event: TimelineEvent;
-    hitRect: { left: number; right: number } | null;
+    hitRect: { left: number; right: number };
   }[][] = [];
   const laneMap = new Map<string, number>();
 
@@ -124,18 +132,18 @@ function assignLanes(
 
     const point = isPointEvent(event);
     const hitRect = point
-      ? getPointHitRect(metrics.x, metrics.width)
-      : null;
+      ? getPointLaneHitRect(metrics.x, metrics.width, pixelsPerDay)
+      : { left: metrics.x, right: metrics.x + metrics.width };
 
     let assigned = -1;
     for (let i = 0; i < lanes.length; i++) {
       const occupants = lanes[i];
-      const lastInLane = occupants[occupants.length - 1].event;
-      if (eventsOverlap(lastInLane, event)) continue;
+      const hasTemporalOverlap = occupants.some((o) =>
+        eventsOverlap(o.event, event)
+      );
+      if (hasTemporalOverlap) continue;
 
       if (
-        point &&
-        hitRect &&
         laneHasPointHitCollision(
           occupants.map((o) => o.hitRect),
           hitRect
@@ -215,6 +223,58 @@ function assignFeaturedFloatTiers(
   return tierMap;
 }
 
+/** Assign non-overlapping rows for point-event label bubbles (2D packing). */
+function assignPointLabelRows(
+  layoutEvents: LayoutEvent[],
+  pixelsPerDay: number
+): Map<string, number> {
+  if (pixelsPerDay < LABEL_ZOOM_THRESHOLD) return new Map();
+
+  const pointEvents = layoutEvents.filter(
+    (entry) =>
+      isPointEvent(entry.event) && !usesFeaturedCircle(entry.event)
+  );
+  const sorted = [...pointEvents].sort(
+    (a, b) =>
+      getEventStartDayIndex(a.event) - getEventStartDayIndex(b.event) ||
+      a.x - b.x ||
+      a.event.id.localeCompare(b.event.id)
+  );
+
+  const placed: {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  }[] = [];
+  const rowMap = new Map<string, number>();
+  const rowGap = 4;
+
+  for (const entry of sorted) {
+    const hRect = getPointLabelHitRect(entry.x, entry.width);
+    let row = 0;
+
+    while (true) {
+      const top = row * (POINT_LABEL_ROW_HEIGHT + rowGap);
+      const bottom = top + POINT_LABEL_ROW_HEIGHT;
+      const collision = placed.some(
+        (box) =>
+          pointHitRectsOverlap(hRect, box) &&
+          top < box.bottom &&
+          bottom > box.top
+      );
+      if (!collision) {
+        placed.push({ ...hRect, top, bottom });
+        rowMap.set(entry.event.id, row);
+        break;
+      }
+      row++;
+    }
+  }
+
+  return rowMap;
+}
+
 export function computeTimelineLayout(
   events: TimelineEvent[],
   backgrounds: Background[],
@@ -237,8 +297,7 @@ export function computeTimelineLayout(
     metricsById.set(event.id, { x, width });
   }
 
-  const laneMap = assignLanes(events, metricsById);
-  const maxLane = events.length > 0 ? Math.max(...laneMap.values()) + 1 : 1;
+  const laneMap = assignLanes(events, metricsById, pixelsPerDay);
 
   const layoutEvents: LayoutEvent[] = events.map((event) => {
     const metrics = metricsById.get(event.id)!;
@@ -248,12 +307,33 @@ export function computeTimelineLayout(
       width: metrics.width,
       lane: laneMap.get(event.id) ?? 0,
       floatTier: 0,
+      labelRow: 0,
     };
   });
 
   const floatTierMap = assignFeaturedFloatTiers(layoutEvents, pixelsPerDay);
+  const pointLabelRowMap = assignPointLabelRows(layoutEvents, pixelsPerDay);
+
+  let maxLane = events.length > 0 ? Math.max(...laneMap.values()) + 1 : 1;
+  let maxLabelRow = 0;
+
   for (const entry of layoutEvents) {
     entry.floatTier = floatTierMap.get(entry.event.id) ?? 0;
+    entry.labelRow = pointLabelRowMap.get(entry.event.id) ?? 0;
+    maxLabelRow = Math.max(maxLabelRow, entry.labelRow);
+  }
+
+  const rangeLaneCount =
+    layoutEvents.filter((e) => !isPointEvent(e.event)).length > 0
+      ? Math.max(
+          ...layoutEvents
+            .filter((e) => !isPointEvent(e.event))
+            .map((e) => e.lane)
+        ) + 1
+      : 0;
+
+  if (pixelsPerDay >= LABEL_ZOOM_THRESHOLD && maxLabelRow > 0) {
+    maxLane = Math.max(maxLane, rangeLaneCount + maxLabelRow + 1);
   }
 
   const layoutBackgrounds: LayoutBackground[] = backgrounds.map((bg) => {
@@ -273,6 +353,7 @@ export function computeTimelineLayout(
     events: layoutEvents,
     backgrounds: layoutBackgrounds,
     laneCount: maxLane,
+    rangeLaneCount,
   };
 }
 

@@ -10,6 +10,8 @@ import type {
 import { createEmptyData, normalizeTimelineData } from "./types";
 import { loadLocalData, saveLocalData } from "./storage";
 import { mergeImportData, replaceTimelineData } from "./merge";
+import { parseTimelineData } from "./parse-timeline-data";
+import { showToast } from "./use-toast";
 import {
   clearSavedTimelineView,
   notifyTimelineDataCleared,
@@ -51,7 +53,15 @@ interface TimelineStore {
 let persistQueue: Promise<void> = Promise.resolve();
 
 function queuePersist(fn: () => Promise<void>): void {
-  persistQueue = persistQueue.then(fn).catch(console.error);
+  persistQueue = persistQueue
+    .then(fn)
+    .catch((err) => {
+      console.error(err);
+      showToast({
+        message: "Could not save timeline data. Check browser storage and try again.",
+        duration: 8000,
+      });
+    });
 }
 
 export const useTimelineStore = create<TimelineStore>((set, get) => ({
@@ -232,11 +242,11 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
   },
 
   importData: (data, mode) => {
-    const normalized = normalizeTimelineData(data);
+    const { data: parsed } = parseTimelineData(data);
     const result =
       mode === "replace"
-        ? replaceTimelineData(normalized)
-        : mergeImportData(get().data, normalized);
+        ? replaceTimelineData(parsed)
+        : mergeImportData(get().data, parsed);
     set({ data: result });
     get().persist();
   },

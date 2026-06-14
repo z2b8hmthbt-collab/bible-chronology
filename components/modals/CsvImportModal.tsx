@@ -80,6 +80,10 @@ export function CsvImportModal({ onClose }: CsvImportModalProps) {
       setMapping(autoDetectMapping(result.headers));
       setStep("map");
     };
+    reader.onerror = () => {
+      setParseError("Could not read the selected file.");
+      setStep("upload");
+    };
     reader.readAsText(file, "UTF-8");
   };
 

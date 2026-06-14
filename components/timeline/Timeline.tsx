@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useEffect, useMemo } from "react";
+import { useCallback, useRef, useState, useEffect, useMemo, useLayoutEffect } from "react";
 import { useTimelineStore } from "@/lib/store";
 import { createScrollStore } from "@/lib/scroll-store";
 import {
@@ -13,6 +13,7 @@ import {
   minPixelsPerDay,
   clampZoom,
 } from "@/lib/timeline-layout";
+import { LABEL_ZOOM_THRESHOLD, POINT_LABEL_ROW_HEIGHT } from "@/lib/timeline-point-hit";
 import {
   getFeaturedCircleDiameter,
   getFeaturedLabelFontSize,
@@ -32,7 +33,7 @@ import { TimelineMinimap } from "./TimelineMinimap";
 import { TimelineRulerStrip } from "./TimelineRulerStrip";
 import { TimelineViewport } from "./TimelineViewport";
 import { CategoryLegend } from "../CategoryLegend";
-import { usePinchZoom } from "./usePinchZoom";
+import { usePinchZoom, type ZoomAnchor } from "./usePinchZoom";
 import { useDragPan } from "./useDragPan";
 import type { Category } from "@/lib/types";
 import type { useHiddenCategories } from "@/lib/use-hidden-categories";
@@ -51,11 +52,12 @@ interface TimelineProps {
 const COMPACT_BREAKPOINT = 640;
 
 /** Vertical sizing tuned per device so phones stay tight and desktops breathe. */
-function getTimelineMetrics(viewportWidth: number) {
+function getTimelineMetrics(viewportWidth: number, pixelsPerDay: number) {
   const compact = viewportWidth > 0 && viewportWidth < COMPACT_BREAKPOINT;
+  const showPointLabels = pixelsPerDay >= LABEL_ZOOM_THRESHOLD;
   const eventHeight = compact ? 26 : 36;
-  const labelHeight = compact ? 14 : 18;
-  const gap = compact ? 3 : 4;
+  const labelHeight = showPointLabels ? POINT_LABEL_ROW_HEIGHT : compact ? 14 : 18;
+  const gap = showPointLabels ? 10 : compact ? 5 : 8;
   const backgroundHeight = compact ? 22 : 28;
   const laneHeight = eventHeight + labelHeight + gap;
   const eventsTop = backgroundHeight;
@@ -92,9 +94,10 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollStore = useRef(createScrollStore()).current;
   const hasAutoFit = useRef(false);
+  const zoomAnchorRef = useRef<ZoomAnchor | null>(null);
   const layout = useTimelineLayout(filteredEvents, backgrounds, pixelsPerDay);
 
-  const metrics = getTimelineMetrics(viewportWidth);
+  const metrics = getTimelineMetrics(viewportWidth, pixelsPerDay);
   const {
     eventHeight: EVENT_HEIGHT,
     labelHeight: EVENT_LABEL_HEIGHT,
@@ -134,8 +137,27 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
     timelineStartDay: layout.timelineStartDay,
     minPixelsPerDay: zoomMin,
     onPixelsPerDayChange: setPixelsPerDay,
-    onScrollPositionChange: scrollStore.setScrollLeft,
+    onPrepareZoom: (anchor) => {
+      zoomAnchorRef.current = anchor;
+    },
   });
+
+  useLayoutEffect(() => {
+    const anchor = zoomAnchorRef.current;
+    if (!anchor) return;
+    zoomAnchorRef.current = null;
+
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const newScrollLeft =
+      (anchor.focalDay - layout.timelineStartDay) * pixelsPerDay -
+      anchor.focalXInViewport;
+    const maxScroll = Math.max(0, layout.totalWidth - el.clientWidth);
+    const next = Math.max(0, Math.min(newScrollLeft, maxScroll));
+    el.scrollLeft = next;
+    scrollStore.setScrollLeft(next);
+  }, [pixelsPerDay, layout.timelineStartDay, layout.totalWidth, scrollStore]);
 
   useDragPan({ containerRef: scrollRef });
 

@@ -26,7 +26,7 @@ export interface Background {
   startDate: string;
   endDate: string;
   imageUrl?: string;
-  /** 0–1 opacity for the full-height background image (default 0.25). */
+  /** 0–1 opacity for the full-height background image (default 0.45). */
   imageOpacity?: number;
   title: string;
   notes: string;

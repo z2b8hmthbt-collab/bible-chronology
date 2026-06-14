@@ -1,5 +1,6 @@
 import type { TimelineData, TimelineEvent, Background, Category } from "./types";
 import { normalizeTimelineData } from "./types";
+import { compareTimelineDates } from "./date-utils";
 
 function isNewer(a: string, b: string): boolean {
   return new Date(a).getTime() > new Date(b).getTime();
@@ -58,16 +59,14 @@ export function getAllUpdatedAt(data: TimelineData): string {
 }
 
 export function sortEvents(events: TimelineEvent[]): TimelineEvent[] {
-  return [...events].sort(
-    (a, b) =>
-      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  return [...events].sort((a, b) =>
+    compareTimelineDates(a.startDate, b.startDate)
   );
 }
 
 export function sortBackgrounds(backgrounds: Background[]): Background[] {
-  return [...backgrounds].sort(
-    (a, b) =>
-      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  return [...backgrounds].sort((a, b) =>
+    compareTimelineDates(a.startDate, b.startDate)
   );
 }
 

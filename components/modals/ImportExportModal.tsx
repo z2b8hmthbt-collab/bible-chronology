@@ -6,6 +6,8 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { buttonPrimaryClass, buttonSecondaryClass } from "../ui/FormField";
 import { useTimelineStore } from "@/lib/store";
 import { downloadTimelineBackup } from "@/lib/download-backup";
+import { parseTimelineData } from "@/lib/parse-timeline-data";
+import { showToast } from "@/lib/use-toast";
 import type { TimelineData } from "@/lib/types";
 
 interface ImportExportModalProps {
@@ -40,17 +42,25 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const parsed = JSON.parse(reader.result as string) as TimelineData;
-        if (!parsed.events || !parsed.backgrounds || !parsed.categories) {
-          throw new Error("Invalid backup format");
-        }
+        const raw = JSON.parse(reader.result as string);
+        const { data: parsed, warnings } = parseTimelineData(raw);
         setPendingData(parsed);
         setImportMode(null);
         setError(null);
+        if (warnings.length > 0) {
+          showToast({
+            message: `Import preview: ${warnings.length} item(s) skipped or adjusted.`,
+            duration: 6000,
+          });
+        }
       } catch {
         setError("Invalid JSON file — choose a timeline backup exported from this app.");
         setPendingData(null);
       }
+    };
+    reader.onerror = () => {
+      setError("Could not read the selected file.");
+      setPendingData(null);
     };
     reader.readAsText(file);
   };

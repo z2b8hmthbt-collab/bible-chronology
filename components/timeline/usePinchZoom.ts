@@ -3,13 +3,19 @@
 import { useEffect, useRef, useCallback } from "react";
 import { clampZoom } from "@/lib/timeline-layout";
 
+export interface ZoomAnchor {
+  focalDay: number;
+  focalXInViewport: number;
+}
+
 interface PinchZoomOptions {
   containerRef: React.RefObject<HTMLElement | null>;
   pixelsPerDay: number;
   timelineStartDay: number;
   minPixelsPerDay: number;
   onPixelsPerDayChange: (ppd: number) => void;
-  onScrollPositionChange?: (scrollLeft: number) => void;
+  /** Called before ppd changes so the parent can restore scroll after layout. */
+  onPrepareZoom?: (anchor: ZoomAnchor) => void;
 }
 
 function getTouchDistance(touches: TouchList): number {
@@ -29,7 +35,7 @@ export function usePinchZoom({
   timelineStartDay,
   minPixelsPerDay,
   onPixelsPerDayChange,
-  onScrollPositionChange,
+  onPrepareZoom,
 }: PinchZoomOptions) {
   const pixelsPerDayRef = useRef(pixelsPerDay);
   const timelineStartDayRef = useRef(timelineStartDay);
@@ -39,31 +45,24 @@ export function usePinchZoom({
   timelineStartDayRef.current = timelineStartDay;
   minPixelsPerDayRef.current = minPixelsPerDay;
 
-  const onScrollPositionChangeRef = useRef(onScrollPositionChange);
-  onScrollPositionChangeRef.current = onScrollPositionChange;
+  const onPrepareZoomRef = useRef(onPrepareZoom);
+  onPrepareZoomRef.current = onPrepareZoom;
 
   const applyZoomAt = useCallback(
     (nextPixelsPerDay: number, focalXInViewport: number) => {
       const el = containerRef.current;
       const clamped = clampZoom(nextPixelsPerDay, minPixelsPerDayRef.current);
-      if (!el) {
-        onPixelsPerDayChange(clamped);
-        return;
-      }
+      if (clamped === pixelsPerDayRef.current) return;
 
       const currentPpd = pixelsPerDayRef.current;
       const startDay = timelineStartDayRef.current;
-      const focalScrollX = el.scrollLeft + focalXInViewport;
+      const focalScrollX = el
+        ? el.scrollLeft + focalXInViewport
+        : focalXInViewport;
       const focalDay = startDay + focalScrollX / currentPpd;
-      const newScrollLeft =
-        (focalDay - startDay) * clamped - focalXInViewport;
 
+      onPrepareZoomRef.current?.({ focalDay, focalXInViewport: focalXInViewport });
       onPixelsPerDayChange(clamped);
-      requestAnimationFrame(() => {
-        const next = Math.max(0, newScrollLeft);
-        el.scrollLeft = next;
-        onScrollPositionChangeRef.current?.(next);
-      });
     },
     [containerRef, onPixelsPerDayChange]
   );
@@ -79,8 +78,7 @@ export function usePinchZoom({
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
 
-      const rect = el.getBoundingClientRect();
-      const focalX = e.clientX - rect.left;
+      const focalX = el.clientWidth / 2;
       const factor = Math.exp(-e.deltaY * 0.008);
       const next = clampZoom(
         pixelsPerDayRef.current * factor,
