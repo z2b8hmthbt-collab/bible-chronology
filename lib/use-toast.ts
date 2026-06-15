@@ -5,8 +5,8 @@ export interface Toast {
   message: string;
   actionLabel?: string;
   onAction?: () => void;
-  /** Auto-dismiss delay in ms. Defaults to 5000. */
-  duration?: number;
+  /** Auto-dismiss delay in ms. Defaults to 5000. Pass null to keep until dismissed. */
+  duration?: number | null;
 }
 
 interface ToastStore {

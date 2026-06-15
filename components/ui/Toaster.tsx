@@ -21,6 +21,7 @@ function ToastItem({ toast }: { toast: Toast }) {
   const dismissToast = useToastStore((s) => s.dismissToast);
 
   useEffect(() => {
+    if (toast.duration === null) return;
     const timer = setTimeout(
       () => dismissToast(toast.id),
       toast.duration ?? 5000
