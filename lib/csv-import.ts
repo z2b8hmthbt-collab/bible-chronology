@@ -265,6 +265,15 @@ function combineDescription(
   return parts.join("\n\n");
 }
 
+/** Split a CSV category cell into multiple names (semicolon or pipe separated). */
+export function splitCategoryNames(value: string): string[] {
+  if (!value.trim()) return [];
+  return value
+    .split(/[;|]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 export function convertCsvToRows(
   headers: string[],
   rows: string[][],

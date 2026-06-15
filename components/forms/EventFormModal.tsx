@@ -6,7 +6,6 @@ import {
   FormField,
   FormInput,
   FormTextarea,
-  FormSelect,
   buttonPrimaryClass,
 } from "../ui/FormField";
 import { LinksInput } from "./LinksInput";
@@ -14,6 +13,10 @@ import { ImageUpload, isValidImageUrl } from "./ImageUpload";
 import { DateInput } from "./DateInput";
 import { useTimelineStore } from "@/lib/store";
 import { isPointEvent } from "@/lib/timeline-point-hit";
+import {
+  getEventCategoryIds,
+  normalizeEventCategoryIds,
+} from "@/lib/event-categories";
 import {
   hasValidationErrors,
   validateEventDraft,
@@ -32,12 +35,17 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
   const addEvent = useTimelineStore((s) => s.addEvent);
   const updateEvent = useTimelineStore((s) => s.updateEvent);
 
+  const defaultCategoryId = categories[0]?.id ?? "cat-default";
+  const initialCategoryIds = existing
+    ? getEventCategoryIds(existing)
+    : [defaultCategoryId];
+
   const [title, setTitle] = useState(existing?.title ?? "");
   const [startDate, setStartDate] = useState(existing?.startDate ?? "");
   const [endDate, setEndDate] = useState(existing?.endDate ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
-  const [categoryId, setCategoryId] = useState(
-    existing?.categoryId ?? categories[0]?.id ?? "cat-default"
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(
+    () => new Set(initialCategoryIds)
   );
   const [links, setLinks] = useState<string[]>(existing?.links ?? []);
   const [imageUrl, setImageUrl] = useState(existing?.imageUrl ?? "");
@@ -56,8 +64,28 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
   const showCircleBlockedHint =
     featured && Boolean(imageUrl.trim()) && !singleDay;
 
+  const toggleCategory = (id: string) => {
+    setSelectedCategoryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        if (next.size <= 1) return prev;
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    setErrors((e) => {
+      const { categories: _c, ...rest } = e;
+      return rest;
+    });
+  };
+
   const validate = () => {
     const e = validateEventDraft({ title, startDate, endDate: endDate || undefined });
+    if (selectedCategoryIds.size === 0) {
+      e.categories = "Select at least one category";
+    }
     setErrors(e);
     return !hasValidationErrors(e);
   };
@@ -71,16 +99,20 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
       draft && isValidImageUrl(draft) ? draft : imageUrl.trim();
 
     setSubmitting(true);
-    const resolvedCategoryId = categories.some((c) => c.id === categoryId)
-      ? categoryId
-      : categories[0]?.id ?? "cat-default";
+    const orderedIds = categories
+      .filter((c) => selectedCategoryIds.has(c.id))
+      .map((c) => c.id);
+    const categoryIds = normalizeEventCategoryIds(
+      orderedIds,
+      categories.map((c) => c.id)
+    );
 
     const payload = {
       title: title.trim(),
       startDate,
       endDate: endDate || undefined,
       notes,
-      categoryId: resolvedCategoryId,
+      categoryIds,
       links: links.filter(Boolean),
       imageUrl: trimmedImageUrl || undefined,
       featured: featured || undefined,
@@ -114,17 +146,31 @@ export function EventFormModal({ onClose, editId }: EventFormModalProps) {
           </FormField>
         </div>
 
-        <FormField label="Category">
-          <FormSelect
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
+        <FormField label="Categories" error={errors.categories}>
+          <p className="mb-2 text-xs text-[var(--muted)]">
+            Select one or more. The first listed category sets the timeline color.
+          </p>
+          <div className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--background)] p-2">
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
+              <label
+                key={c.id}
+                className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 transition hover:bg-[var(--surface)]"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedCategoryIds.has(c.id)}
+                  onChange={() => toggleCategory(c.id)}
+                  className="accent-indigo-500"
+                />
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: c.color }}
+                  aria-hidden
+                />
+                <span className="text-sm">{c.name}</span>
+              </label>
             ))}
-          </FormSelect>
+          </div>
         </FormField>
 
         <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3">

@@ -14,6 +14,7 @@ import {
   clampZoom,
 } from "@/lib/timeline-layout";
 import { LABEL_ZOOM_THRESHOLD, POINT_LABEL_ROW_HEIGHT } from "@/lib/timeline-point-hit";
+import { isEventVisibleForCategories } from "@/lib/event-categories";
 import {
   getFeaturedCircleDiameter,
   getFeaturedLabelFontSize,
@@ -82,7 +83,7 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
   const filteredEvents = useMemo(
     () =>
       categoriesLoaded
-        ? events.filter((e) => isCategoryVisible(e.categoryId))
+        ? events.filter((e) => isEventVisibleForCategories(e, isCategoryVisible))
         : events,
     [events, categoriesLoaded, isCategoryVisible]
   );
@@ -391,6 +392,8 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
         scrollRef={scrollRef}
         layout={layout}
         viewportWidth={viewportWidth}
+        events={filteredEvents}
+        categories={categories}
         className="order-3"
       />
     </div>

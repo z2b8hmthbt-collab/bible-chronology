@@ -12,7 +12,7 @@ export interface TimelineEvent {
   startDate: string;
   endDate?: string;
   notes: string;
-  categoryId: string;
+  categoryIds: string[];
   links: string[];
   imageUrl?: string;
   /** Stays prominent when zoomed out (larger pin, label at lower zoom). */
@@ -76,17 +76,30 @@ export function createEmptyData(): TimelineData {
   };
 }
 
+import { normalizeEventCategories } from "./event-categories";
+
 /** Strip legacy fields and normalize loaded/imported data. */
 export function normalizeTimelineData(data: TimelineData): TimelineData {
+  const categories = (data.categories ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    color: c.color,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+  }));
+
+  const validCategoryIds = new Set(categories.map((c) => c.id));
+
+  const events = (data.events ?? []).map((event) =>
+    normalizeEventCategories(
+      event as TimelineEvent & { categoryId?: string },
+      validCategoryIds
+    )
+  );
+
   return {
-    events: data.events ?? [],
+    events,
     backgrounds: data.backgrounds ?? [],
-    categories: (data.categories ?? []).map((c) => ({
-      id: c.id,
-      name: c.name,
-      color: c.color,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
-    })),
+    categories,
   };
 }

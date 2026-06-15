@@ -1,14 +1,19 @@
 "use client";
 
-import { memo, type RefObject } from "react";
+import { memo, useMemo, type RefObject } from "react";
 import { useElementScrollLeft } from "@/lib/use-element-scroll-left";
+import { getVisibleFeaturedRulerMarkers } from "@/lib/ruler-featured-markers";
 import { TimelineRuler } from "./TimelineRuler";
+import { FeaturedRulerMarkers } from "./FeaturedRulerMarkers";
 import type { TimelineLayout } from "@/lib/timeline-layout";
+import type { Category, TimelineEvent } from "@/lib/types";
 
 interface TimelineRulerStripProps {
   scrollRef: RefObject<HTMLDivElement | null>;
   layout: TimelineLayout;
   viewportWidth: number;
+  events: TimelineEvent[];
+  categories: Category[];
   className?: string;
 }
 
@@ -17,6 +22,8 @@ export const TimelineRulerStrip = memo(function TimelineRulerStrip({
   scrollRef,
   layout,
   viewportWidth,
+  events,
+  categories,
   className = "",
 }: TimelineRulerStripProps) {
   const scrollLeft = useElementScrollLeft(scrollRef);
@@ -24,6 +31,29 @@ export const TimelineRulerStrip = memo(function TimelineRulerStrip({
     viewportWidth > 0
       ? viewportWidth
       : scrollRef.current?.clientWidth ?? 0;
+
+  const categoryById = useMemo(
+    () => new Map(categories.map((c) => [c.id, c])),
+    [categories]
+  );
+
+  const featuredMarkers = useMemo(
+    () =>
+      getVisibleFeaturedRulerMarkers(
+        events,
+        layout.timelineStartDay,
+        layout.pixelsPerDay,
+        scrollLeft,
+        width
+      ),
+    [
+      events,
+      layout.timelineStartDay,
+      layout.pixelsPerDay,
+      scrollLeft,
+      width,
+    ]
+  );
 
   return (
     <div
@@ -43,6 +73,10 @@ export const TimelineRulerStrip = memo(function TimelineRulerStrip({
           totalWidth={layout.totalWidth}
           scrollLeft={scrollLeft}
           viewportWidth={width}
+        />
+        <FeaturedRulerMarkers
+          markers={featuredMarkers}
+          categoryById={categoryById}
         />
       </div>
     </div>

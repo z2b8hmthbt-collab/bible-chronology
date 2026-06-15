@@ -120,7 +120,7 @@ See **Menu → Help & shortcuts** in the app for the full list.
     "startDate": "YYYY-MM-DD or -YYYY-MM-DD for BC",
     "endDate": "optional",
     "notes": "string",
-    "categoryId": "uuid",
+    "categoryIds": ["uuid"],
     "links": ["url"],
     "imageUrl": "https://yourdomain.com/...",
     "featured": false,

@@ -25,7 +25,7 @@ describe("parse-timeline-data", () => {
           startDate: "-1000-01-01",
           endDate: "-0999-12-31",
           notes: "",
-          categoryId: "cat-default",
+          categoryIds: ["cat-default"],
           links: [],
           createdAt: now,
           updatedAt: now,
@@ -36,7 +36,7 @@ describe("parse-timeline-data", () => {
           startDate: "-1000-01-01",
           endDate: "-2000-01-01",
           notes: "",
-          categoryId: "cat-default",
+          categoryIds: ["cat-default"],
           links: [],
           createdAt: now,
           updatedAt: now,
@@ -55,5 +55,26 @@ describe("parse-timeline-data", () => {
     expect(() => parseTimelineData({ foo: "bar" })).toThrow(
       "Invalid backup format"
     );
+  });
+
+  it("accepts legacy categoryId on import", () => {
+    const { data } = parseTimelineData({
+      events: [
+        {
+          id: "e1",
+          title: "Legacy",
+          startDate: "-1000-01-01",
+          notes: "",
+          categoryId: "cat-life",
+          links: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      backgrounds: [],
+      categories: createEmptyData().categories,
+    });
+
+    expect(data.events[0].categoryIds).toEqual(["cat-life"]);
   });
 });

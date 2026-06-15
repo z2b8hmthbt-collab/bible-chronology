@@ -60,6 +60,14 @@ function parseCategory(raw: unknown, warnings: string[]): Category | null {
   return { id, name, color, createdAt, updatedAt };
 }
 
+function parseEventCategoryIds(raw: Record<string, unknown>): string[] {
+  const fromArray = asStringArray(raw.categoryIds);
+  if (fromArray.length > 0) return fromArray;
+  const legacy = asString(raw.categoryId, "");
+  if (legacy) return [legacy];
+  return ["cat-default"];
+}
+
 function parseEvent(raw: unknown, warnings: string[]): TimelineEvent | null {
   if (!isRecord(raw)) return null;
   const id = asString(raw.id);
@@ -67,7 +75,7 @@ function parseEvent(raw: unknown, warnings: string[]): TimelineEvent | null {
   const startDate = normalizeTimelineDate(asString(raw.startDate));
   const createdAt = asString(raw.createdAt);
   const updatedAt = asString(raw.updatedAt);
-  const categoryId = asString(raw.categoryId, "cat-default");
+  const categoryIds = parseEventCategoryIds(raw);
 
   if (!id || !title || !startDate || !createdAt || !updatedAt) {
     warnings.push(`Skipped invalid event: ${title || id || "unknown"}`);
@@ -90,7 +98,7 @@ function parseEvent(raw: unknown, warnings: string[]): TimelineEvent | null {
     startDate,
     endDate,
     notes: asString(raw.notes),
-    categoryId,
+    categoryIds,
     links: asStringArray(raw.links),
     imageUrl: asOptionalString(raw.imageUrl),
     featured: asBoolean(raw.featured),

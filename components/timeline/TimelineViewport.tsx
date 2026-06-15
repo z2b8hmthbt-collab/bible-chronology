@@ -11,6 +11,7 @@ import {
 } from "@/lib/timeline-layout";
 import { isPointEvent, LABEL_ZOOM_THRESHOLD, POINT_LABEL_ROW_HEIGHT } from "@/lib/timeline-point-hit";
 import { usesFeaturedCircle } from "@/lib/featured-marker-size";
+import { getPrimaryCategoryId } from "@/lib/event-categories";
 import { TimelineGrid } from "./TimelineGrid";
 import { BackgroundSpan } from "./BackgroundSpan";
 import { BackgroundImageColumn } from "./BackgroundImageColumn";
@@ -133,7 +134,7 @@ export const TimelineViewport = memo(function TimelineViewport({
         style={{ top: eventsTop }}
       >
         {sortedVisibleEvents.map(({ event, x, width, lane, floatTier, labelRow }) => {
-          const category = categoryById.get(event.categoryId);
+          const category = categoryById.get(getPrimaryCategoryId(event));
           const useLabelRowLayout =
             isPointEvent(event) &&
             layout.pixelsPerDay >= LABEL_ZOOM_THRESHOLD &&

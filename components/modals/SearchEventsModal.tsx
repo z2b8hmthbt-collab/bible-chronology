@@ -7,6 +7,10 @@ import { useTimelineStore } from "@/lib/store";
 import { formatTimelineDate, getEventStartDayIndex } from "@/lib/date-utils";
 import { useTimelineController } from "@/lib/timeline-controller";
 import { getCategoryById } from "@/lib/merge";
+import {
+  getEventCategoryIds,
+  getPrimaryCategoryId,
+} from "@/lib/event-categories";
 
 interface SearchEventsModalProps {
   onClose: () => void;
@@ -26,12 +30,19 @@ export function SearchEventsModal({ onClose }: SearchEventsModalProps) {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     return events
-      .filter((e) => cleanTitle(e.title).toLowerCase().includes(q))
+      .filter((e) => {
+        const titleMatch = cleanTitle(e.title).toLowerCase().includes(q);
+        const categoryMatch = getEventCategoryIds(e).some((id) => {
+          const cat = getCategoryById(categories, id);
+          return cat?.name.toLowerCase().includes(q);
+        });
+        return titleMatch || categoryMatch;
+      })
       .sort(
         (a, b) => getEventStartDayIndex(a) - getEventStartDayIndex(b)
       )
       .slice(0, 50);
-  }, [events, query]);
+  }, [events, categories, query]);
 
   const selectEvent = (eventId: string) => {
     controller.scrollToEvent(eventId);
@@ -46,7 +57,7 @@ export function SearchEventsModal({ onClose }: SearchEventsModalProps) {
           className={inputClass}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by title…"
+          placeholder="Search by title or category…"
           autoFocus
         />
 
@@ -57,7 +68,14 @@ export function SearchEventsModal({ onClose }: SearchEventsModalProps) {
         {results.length > 0 && (
           <ul className="max-h-[50vh] space-y-1 overflow-y-auto">
             {results.map((event) => {
-              const category = getCategoryById(categories, event.categoryId);
+              const primaryCategory = getCategoryById(
+                categories,
+                getPrimaryCategoryId(event)
+              );
+              const categoryLabel = getEventCategoryIds(event)
+                .map((id) => getCategoryById(categories, id)?.name)
+                .filter(Boolean)
+                .join(", ");
               return (
                 <li key={event.id}>
                   <button
@@ -67,7 +85,9 @@ export function SearchEventsModal({ onClose }: SearchEventsModalProps) {
                   >
                     <span
                       className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: category?.color ?? "#6366f1" }}
+                      style={{
+                        backgroundColor: primaryCategory?.color ?? "#6366f1",
+                      }}
                     />
                     <span className="min-w-0 flex-1">
                       <span className="font-serif block truncate text-sm font-medium">
@@ -78,7 +98,7 @@ export function SearchEventsModal({ onClose }: SearchEventsModalProps) {
                       </span>
                       <span className="tabular-nums mt-0.5 block text-xs text-[var(--muted)]">
                         {formatTimelineDate(event.startDate)}
-                        {category && ` · ${category.name}`}
+                        {categoryLabel && ` · ${categoryLabel}`}
                       </span>
                     </span>
                   </button>

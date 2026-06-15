@@ -7,6 +7,7 @@ import type {
   Category,
   DetailItem,
 } from "./types";
+import { DEFAULT_CATEGORY_ID } from "./event-categories";
 import { createEmptyData, normalizeTimelineData } from "./types";
 import { loadLocalData, saveLocalData } from "./storage";
 import { mergeImportData, replaceTimelineData } from "./merge";
@@ -215,9 +216,14 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
       data: {
         ...s.data,
         categories: s.data.categories.filter((c) => c.id !== id),
-        events: s.data.events.map((e) =>
-          e.categoryId === id ? { ...e, categoryId: "cat-default" } : e
-        ),
+        events: s.data.events.map((e) => {
+          if (!e.categoryIds.includes(id)) return e;
+          const next = e.categoryIds.filter((cid) => cid !== id);
+          return {
+            ...e,
+            categoryIds: next.length > 0 ? next : [DEFAULT_CATEGORY_ID],
+          };
+        }),
       },
     }));
     get().persist();

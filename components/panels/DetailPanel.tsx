@@ -5,6 +5,7 @@ import { formatTimelineDate } from "@/lib/date-utils";
 import type { DetailItem } from "@/lib/types";
 import { useTimelineStore } from "@/lib/store";
 import { getCategoryById } from "@/lib/merge";
+import { getEventCategoryIds } from "@/lib/event-categories";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { DetailImage } from "../ui/DetailImage";
 import { showToast } from "@/lib/use-toast";
@@ -73,7 +74,9 @@ export function DetailPanel({ item, onClose, onEdit }: DetailPanelProps) {
 
   if (item.type === "event") {
     const event = item.data;
-    const category = getCategoryById(categories, event.categoryId);
+    const eventCategories = getEventCategoryIds(event)
+      .map((id) => getCategoryById(categories, id))
+      .filter((c): c is NonNullable<typeof c> => c != null);
 
     return (
       <>
@@ -89,16 +92,19 @@ export function DetailPanel({ item, onClose, onEdit }: DetailPanelProps) {
       >
         <div className="space-y-5">
           <div>
-            {category && (
-              <span
-                className="mb-3 inline-block rounded-full px-2.5 py-1 text-xs font-medium text-white"
-                style={{ backgroundColor: category.color }}
-              >
-                {category.name}
-              </span>
-            )}
+            <div className="mb-3 flex flex-wrap gap-2">
+              {eventCategories.map((category) => (
+                <span
+                  key={category.id}
+                  className="inline-block rounded-full px-2.5 py-1 text-xs font-medium text-white"
+                  style={{ backgroundColor: category.color }}
+                >
+                  {category.name}
+                </span>
+              ))}
+            </div>
             {event.featured && (
-              <span className="mb-3 ml-2 inline-block rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+              <span className="mb-3 inline-block rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                 ★ Featured
               </span>
             )}

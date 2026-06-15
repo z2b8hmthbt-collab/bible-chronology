@@ -11,6 +11,7 @@ import {
 } from "@/lib/date-utils";
 import { getAdMarkerX } from "@/lib/timeline-ticks";
 import { colorWithAlpha } from "@/lib/color-utils";
+import { getPrimaryCategoryId } from "@/lib/event-categories";
 
 interface TimelineMinimapProps {
   events: TimelineEvent[];
@@ -97,7 +98,9 @@ export const TimelineMinimap = memo(function TimelineMinimap({
         {events.map((event) => {
           const start = getEventStartDayIndex(event);
           const end = getEventEndDayIndex(event);
-          const category = categories.find((c) => c.id === event.categoryId);
+          const category = categories.find(
+            (c) => c.id === getPrimaryCategoryId(event)
+          );
           const color = category?.color ?? "#6366f1";
           const isPoint = !event.endDate || event.endDate === event.startDate;
           const left = scale(start - timelineStartDay);

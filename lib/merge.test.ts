@@ -9,7 +9,7 @@ function makeEvent(id: string, startDate: string): TimelineEvent {
     title: id,
     startDate,
     notes: "",
-    categoryId: "cat-default",
+    categoryIds: ["cat-default"],
     links: [],
     createdAt: now,
     updatedAt: now,

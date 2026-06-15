@@ -11,6 +11,7 @@ import {
   parseCsv,
   autoDetectMapping,
   convertCsvToRows,
+  splitCategoryNames,
   type CsvFieldMapping,
   type CsvRow,
 } from "@/lib/csv-import";
@@ -107,13 +108,17 @@ export function CsvImportModal({ onClose }: CsvImportModalProps) {
 
   const handleImport = () => {
     for (const row of preview) {
-      const categoryId = findOrAddCategory(row.category || "General");
+      const names = splitCategoryNames(row.category);
+      const resolvedNames = names.length > 0 ? names : ["General"];
+      const categoryIds = [
+        ...new Set(resolvedNames.map((name) => findOrAddCategory(name))),
+      ];
       addEvent({
         title: row.title,
         startDate: row.startDate,
         endDate: row.endDate || undefined,
         notes: row.description,
-        categoryId,
+        categoryIds,
         links: row.link ? [row.link] : [],
       });
     }
