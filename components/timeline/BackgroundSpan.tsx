@@ -6,6 +6,8 @@ interface BackgroundSpanProps {
   background: Background;
   x: number;
   width: number;
+  top: number;
+  height: number;
   scrollLeft?: number;
   onInfoClick: () => void;
 }
@@ -16,6 +18,8 @@ export function BackgroundSpan({
   background,
   x,
   width,
+  top,
+  height,
   scrollLeft = 0,
   onInfoClick,
 }: BackgroundSpanProps) {
@@ -24,8 +28,8 @@ export function BackgroundSpan({
 
   return (
     <div
-      className="pointer-events-none absolute inset-y-0"
-      style={{ left: x, width: spanWidth }}
+      className="pointer-events-none absolute"
+      style={{ left: x, top, width: spanWidth, height }}
     >
       {/* Full date-range rail in the background band */}
       <div

@@ -29,6 +29,7 @@ interface TimelineViewportProps {
   viewportWidth: number;
   viewportHeight: number;
   categoryById: Map<string, Category>;
+  backgroundRowHeight: number;
   backgroundHeight: number;
   eventsTop: number;
   eventHeight: number;
@@ -44,6 +45,7 @@ export const TimelineViewport = memo(function TimelineViewport({
   viewportWidth,
   viewportHeight,
   categoryById,
+  backgroundRowHeight,
   backgroundHeight,
   eventsTop,
   eventHeight,
@@ -115,12 +117,14 @@ export const TimelineViewport = memo(function TimelineViewport({
         className="absolute left-0 right-0 z-20"
         style={{ top: 0, height: backgroundHeight }}
       >
-        {visibleBackgrounds.map(({ background, x, width }) => (
+        {visibleBackgrounds.map(({ background, x, width, row }) => (
           <BackgroundSpan
             key={background.id}
             background={background}
             x={x}
             width={width}
+            top={row * backgroundRowHeight}
+            height={backgroundRowHeight}
             scrollLeft={scrollLeft}
             onInfoClick={() =>
               setDetailItem({ type: "background", data: background })

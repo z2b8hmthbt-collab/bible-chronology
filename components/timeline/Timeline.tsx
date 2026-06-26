@@ -102,10 +102,10 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
   const {
     eventHeight: EVENT_HEIGHT,
     labelHeight: EVENT_LABEL_HEIGHT,
-    backgroundHeight: BACKGROUND_HEIGHT,
+    backgroundHeight: BACKGROUND_ROW_HEIGHT,
     laneHeight: LANE_HEIGHT,
-    eventsTop: BASE_EVENTS_TOP,
   } = metrics;
+  const BACKGROUND_HEIGHT = BACKGROUND_ROW_HEIGHT * layout.backgroundRowCount;
 
   const featuredTopPad = useMemo(() => {
     const hasCircle = layout.events.some((e) => usesFeaturedCircle(e.event));
@@ -116,7 +116,7 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
     return getFeaturedMarkerOverflow(diameter, labelFont, maxTier);
   }, [layout.events, layout.pixelsPerDay]);
 
-  const EVENTS_TOP = BASE_EVENTS_TOP + featuredTopPad;
+  const EVENTS_TOP = BACKGROUND_HEIGHT + featuredTopPad;
 
   const categoryById = useMemo(() => {
     const map = new Map<string, Category>();
@@ -380,6 +380,7 @@ export function Timeline({ categoryVisibility }: TimelineProps) {
           viewportWidth={viewportWidth}
           viewportHeight={viewportHeight}
           categoryById={categoryById}
+          backgroundRowHeight={BACKGROUND_ROW_HEIGHT}
           backgroundHeight={BACKGROUND_HEIGHT}
           eventsTop={EVENTS_TOP}
           eventHeight={EVENT_HEIGHT}

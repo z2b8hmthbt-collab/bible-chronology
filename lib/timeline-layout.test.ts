@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeTimelineLayout } from "./timeline-layout";
-import type { TimelineEvent } from "./types";
+import type { Background, TimelineEvent } from "./types";
 
 function makePointEvent(id: string, startDate: string): TimelineEvent {
   const now = "2024-01-01T00:00:00.000Z";
@@ -10,6 +10,24 @@ function makePointEvent(id: string, startDate: string): TimelineEvent {
     startDate,
     notes: "",
     categoryIds: ["cat-default"],
+    links: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function makeBackground(
+  id: string,
+  startDate: string,
+  endDate: string
+): Background {
+  const now = "2024-01-01T00:00:00.000Z";
+  return {
+    id,
+    title: id,
+    startDate,
+    endDate,
+    notes: "",
     links: [],
     createdAt: now,
     updatedAt: now,
@@ -77,5 +95,26 @@ describe("timeline-layout lanes", () => {
 
     const rows = layout.events.map((e) => e.labelRow);
     expect(new Set(rows).size).toBe(3);
+  });
+
+  it("stacks overlapping backgrounds into separate rows", () => {
+    const layout = computeTimelineLayout(
+      [],
+      [
+        makeBackground("long", "-2000-01-01", "-1800-01-01"),
+        makeBackground("inside", "-1950-01-01", "-1900-01-01"),
+        makeBackground("after", "-1799-01-01", "-1700-01-01"),
+      ],
+      0.5
+    );
+
+    const rowsById = new Map(
+      layout.backgrounds.map((entry) => [entry.background.id, entry.row])
+    );
+
+    expect(rowsById.get("long")).toBe(0);
+    expect(rowsById.get("inside")).toBe(1);
+    expect(rowsById.get("after")).toBe(0);
+    expect(layout.backgroundRowCount).toBe(2);
   });
 });

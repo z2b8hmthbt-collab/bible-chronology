@@ -87,6 +87,7 @@ export interface LayoutBackground {
   background: Background;
   x: number;
   width: number;
+  row: number;
 }
 
 export interface TimelineLayout {
@@ -96,6 +97,7 @@ export interface TimelineLayout {
   pixelsPerDay: number;
   events: LayoutEvent[];
   backgrounds: LayoutBackground[];
+  backgroundRowCount: number;
   laneCount: number;
   /** Lanes used only by span/range events (point labels stack below). */
   rangeLaneCount: number;
@@ -166,6 +168,44 @@ function assignLanes(
   }
 
   return laneMap;
+}
+
+function assignBackgroundRows(
+  backgrounds: Background[]
+): Map<string, number> {
+  const sorted = [...backgrounds].sort((a, b) => {
+    const startDiff =
+      (getDateDayIndex(a.startDate) ?? 0) - (getDateDayIndex(b.startDate) ?? 0);
+    if (startDiff !== 0) return startDiff;
+    return a.id.localeCompare(b.id);
+  });
+
+  const rowEndDays: number[] = [];
+  const rowMap = new Map<string, number>();
+
+  for (const background of sorted) {
+    const startDay = getDateDayIndex(background.startDate) ?? 0;
+    const endDay = getDateDayIndex(background.endDate) ?? startDay;
+
+    let assigned = -1;
+    for (let row = 0; row < rowEndDays.length; row++) {
+      if (startDay > rowEndDays[row]) {
+        assigned = row;
+        break;
+      }
+    }
+
+    if (assigned === -1) {
+      assigned = rowEndDays.length;
+      rowEndDays.push(endDay);
+    } else {
+      rowEndDays[assigned] = endDay;
+    }
+
+    rowMap.set(background.id, assigned);
+  }
+
+  return rowMap;
 }
 
 function getFeaturedCircleHitRect(
@@ -336,14 +376,19 @@ export function computeTimelineLayout(
     maxLane = Math.max(maxLane, rangeLaneCount + maxLabelRow + 1);
   }
 
+  const backgroundRowMap = assignBackgroundRows(backgrounds);
   const layoutBackgrounds: LayoutBackground[] = backgrounds.map((bg) => {
     const startDay = getDateDayIndex(bg.startDate) ?? timelineStartDay;
     const endDay = getDateDayIndex(bg.endDate) ?? startDay;
     const x = dateToX(startDay, timelineStartDay, pixelsPerDay);
     const endX = dateToX(endDay, timelineStartDay, pixelsPerDay);
     const width = Math.max(endX - x + pixelsPerDay, pixelsPerDay);
-    return { background: bg, x, width };
+    return { background: bg, x, width, row: backgroundRowMap.get(bg.id) ?? 0 };
   });
+  const backgroundRowCount =
+    layoutBackgrounds.length > 0
+      ? Math.max(...layoutBackgrounds.map((bg) => bg.row)) + 1
+      : 1;
 
   return {
     timelineStartDay,
@@ -352,6 +397,7 @@ export function computeTimelineLayout(
     pixelsPerDay,
     events: layoutEvents,
     backgrounds: layoutBackgrounds,
+    backgroundRowCount,
     laneCount: maxLane,
     rangeLaneCount,
   };
